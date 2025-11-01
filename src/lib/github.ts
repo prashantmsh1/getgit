@@ -33,7 +33,8 @@ export const getCommitHashes = async (
   const { data } = await octokit.rest.repos.listCommits({
     owner,
     repo,
-    per_page: 15,
+
+    per_page: 100,
   });
 
   const sortCommits = data.sort(

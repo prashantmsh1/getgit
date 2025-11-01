@@ -1,5 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
+import { Document } from "@langchain/core/documents";
+
 const genAI = new GoogleGenAI({
   vertexai: false,
   apiKey: process.env.GEMINI_API_KEY,
@@ -50,8 +52,70 @@ Please summarise the following diff file: \n\n${diff}`,
   return response.text;
 };
 
-console.log(
-  await aiSummariseCommit(
-    "diff --git a/lib/index.js b/lib/index.js\nindex oocf601..bfef603 100644\n--- a/lib/index.js\n+++ b/lib/index.js\n@@ -1,4 +1,4 @@\n-console.log('Hello World');\n+console.log('Hello, World!');\n",
-  ),
-);
+export const summariseCode = async (doc: Document) => {
+  console.log("Summarizing document...", doc.metadata.source);
+
+  const code = doc.pageContent.slice(0, 10000); // Limit to first 3000 characters
+
+  const response = await model.sendMessage({
+    message: `
+   Imagine you're having a one-on-one with a junior software engineer you're onboarding. Your goal is to make them understand the core purpose of the ${doc.metadata.source} file. Explain it as if you're talking directly to them, using clear language and perhaps drawing analogies if helpful. Ask if they have any initial questions at the end.
+    Please provide a concise summary of the following code:
+    -----
+    \n\n${code}
+    
+    -----
+    
+    Give a summary no more than 100 words for the code above.`,
+    config: {
+      maxOutputTokens: 2000,
+    },
+  });
+
+  return response.text;
+};
+
+export const generateEmbedding = async (text: string) => {
+  console.log("Generating embeddings for text of length:", text.length);
+
+  const response = await genAI.models.embedContent({
+    model: "gemini-embedding-001",
+    contents: text,
+
+    config: {
+      outputDimensionality: 768,
+    },
+  });
+
+  if (!response.embeddings || response.embeddings.length === 0) {
+    console.warn("No embeddings generated in response");
+    return [];
+  }
+
+  const embedding = response.embeddings[0];
+  // console.log("Generated embedding:", JSON.stringify(embedding));
+  return embedding?.values;
+};
+
+// console.log(
+//   await aiSummariseCommit(
+//     "diff --git a/lib/index.js b/lib/index.js\nindex oocf601..bfef603 100644\n--- a/lib/index.js\n+++ b/lib/index.js\n@@ -1,4 +1,4 @@\n-console.log('Hello World');\n+console.log('Hello, World!');\n",
+//   ),
+// );
+
+// console.log(
+//   await summariseCode(
+//     new Document({
+//       pageContent: `function add(a, b) {
+//   return a + b;
+// }
+
+// console.log(add(2, 3));`,
+//       metadata: { source: "example.js" },
+//     }),
+//   ),
+// );
+
+// console.log(
+//   await generateEmbeddings("This is a sample text to generate embeddings for."),
+// );
