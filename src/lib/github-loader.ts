@@ -3,7 +3,12 @@ import { db } from "@/server/db";
 
 import type { Document } from "@langchain/core/documents";
 import { generateEmbedding, summariseCode } from "./gemini";
-
+interface EmbeddingResult {
+  summary: string;
+  embedding: number[];
+  sourceCode: string;
+  fileName: string;
+}
 export const loadGitHubRepo = async (
   githubUrl: string,
   githubToken?: string,
@@ -75,19 +80,51 @@ export const indexGitHubRepo = async (
 };
 
 export const generateEmbeddings = async (docs: Document[]) => {
-  return await Promise.all(
+  const results = await Promise.allSettled(
     docs.map(async (doc) => {
-      const summary = await summariseCode(doc);
+      try {
+        // Skip files exceeding a reasonable token limit (e.g., ~30,000 chars as a proxy for tokens)
+        const content = doc.pageContent;
+        if (content.length > 30000) {
+          console.warn(
+            `Skipping large file: ${doc.metadata.source} (length: ${content.length})`,
+          );
+          return null;
+        }
 
-      const embedding = await generateEmbedding(summary ?? "");
-      return {
-        summary,
-        embedding,
-        sourceCode: JSON.stringify(doc.pageContent),
-        fileName: doc.metadata.source as string,
-      };
+        const summary = await summariseCode(doc);
+        if (!summary) {
+          console.warn(`Failed to summarize: ${doc.metadata.source}`);
+          return null;
+        }
+
+        const embedding = await generateEmbedding(summary);
+        if (!embedding) {
+          console.warn(
+            `Failed to generate embedding for: ${doc.metadata.source}`,
+          );
+          return null;
+        }
+
+        return {
+          summary,
+          embedding,
+          sourceCode: JSON.stringify(content),
+          fileName: doc.metadata.source as string,
+        };
+      } catch (error) {
+        console.error(`Error processing ${doc.metadata.source}:`, error);
+        return null;
+      }
     }),
   );
+
+  return results
+    .filter(
+      (result): result is PromiseFulfilledResult<EmbeddingResult> =>
+        result.status === "fulfilled" && result.value !== null,
+    )
+    .map((result) => result.value);
 };
 
 // console.log(

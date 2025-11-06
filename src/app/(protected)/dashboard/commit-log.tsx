@@ -9,6 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 
 const CommitLog = () => {
   const { projectId } = useProjects();
@@ -126,7 +127,8 @@ const CommitLog = () => {
                   {/* Summary */}
                   {commit.summary && (
                     <div className="bg-muted/50 text-muted-foreground rounded-md p-3 text-sm">
-                      <p className="line-clamp-2">{commit.summary}</p>
+                      <ReactMarkdown>{commit.summary}</ReactMarkdown>{" "}
+                      {/* Replace <p> with ReactMarkdown */}
                     </div>
                   )}
 

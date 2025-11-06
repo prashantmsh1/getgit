@@ -46,7 +46,7 @@ because there were more than two relevant files in the hypothetical commit.
 Do not include parts of the example in your summary.
 It is given only as an example of appropriate comments.
 
-Please summarise the following diff file: \n\n${diff}`,
+Please summarise the following diff file: \n\n${diff} and only return the summary comments as a bulleted list.`,
   });
 
   return response.text;

@@ -5,13 +5,14 @@ import useProjects from "@/hooks/use-project";
 import { ExternalLink, Github, Share } from "lucide-react";
 import Link from "next/link";
 import CommitLog from "./commit-log";
+import AskQuestion from "./ask-question-card";
 
 const DashboardPage = () => {
   const { project, projectId, setProjectId } = useProjects();
 
   console.log("project", project);
   return (
-    <div className="h-auto w-full rounded-xl border-1 border-slate-200 bg-gray-50 p-4 shadow-md">
+    <div className="w-full rounded-xl border-1 border-slate-200 bg-gray-50 p-4 shadow-md">
       <div className="flex w-full items-center justify-between">
         <div className="bg-primary mb-4 flex w-fit items-center gap-2 rounded-md px-4 py-2 text-white">
           <Github className="h-6 w-6 text-gray-50" />
@@ -37,7 +38,10 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="h-4">Ask Questiion Meeting Card</div>
+      <div className="mb-4 grid grid-cols-5">
+        <AskQuestion className="col-span-5 md:col-span-3" />
+        <div>Meeting</div>
+      </div>
 
       <div>
         <CommitLog />
