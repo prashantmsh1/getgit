@@ -20,16 +20,17 @@ model Post {
 }
 
 model User {
-    id            String          @id @default(uuid())
-    email         String          @unique
-    name          String
-    firstName     String
-    lastName      String
-    credits       Int             @default(150)
-    imageUrl      String
-    createdAt     DateTime        @default(now())
-    updatedAt     DateTime        @updatedAt
-    UserToProject UserToProject[]
+    id             String          @id @default(uuid())
+    email          String          @unique
+    name           String
+    firstName      String
+    lastName       String
+    credits        Int             @default(150)
+    imageUrl       String
+    createdAt      DateTime        @default(now())
+    updatedAt      DateTime        @updatedAt
+    UserToProject  UserToProject[]
+    questionsAsked Question[]
 
     @@index([email])
 }
@@ -46,8 +47,25 @@ model Project {
     UserToProject       UserToProject[]
     Commit              Commit[]
     SourceCodeEmbedding SourceCodeEmbedding[]
+    questions           Question[]
 
     @@index([name])
+}
+
+model Question {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    question String
+    answer   String
+
+    fileReferences Json
+    project        Project @relation(fields: [projectId], references: [id])
+    projectId      String
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
 }
 
 model UserToProject {

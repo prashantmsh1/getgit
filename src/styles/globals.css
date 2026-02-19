@@ -123,3 +123,23 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
+
+.wmde-markdown {
+  background-color: white !important;
+  color: black !important;
+}
+
+.wmde-markdown::-webkit-scrollbar {
+  background-color: white !important;
+}
+.wmde-markdown h1,
+.wmde-markdown h2,
+.wmde-markdown h3,
+.wmde-markdown p {
+  color: black !important;
+}
+.wmde-markdown code {
+  border: 2px solid #e2e8f0 !important;
+  background-color: #fffefe !important;
+  color: #333 !important;
+}
