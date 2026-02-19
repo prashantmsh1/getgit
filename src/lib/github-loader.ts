@@ -19,7 +19,7 @@ export const loadGitHubRepo = async (
   const loader = new GithubRepoLoader(repoUrl, {
     accessToken: githubToken ?? process.env.GITHUB_TOKEN,
 
-    branch: "main",
+    branch: "dev",
     ignoreFiles: [
       "**/node_modules/**",
       "**/.git/**",

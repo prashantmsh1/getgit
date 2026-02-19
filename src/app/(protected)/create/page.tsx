@@ -2,9 +2,10 @@
 import { Input } from "@/components/ui/input";
 import useRefetch from "@/hooks/use-refetch";
 import { api } from "@/trpc/react";
-import React, { useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 type FormInput = {
   repoUrl: string;
@@ -14,7 +15,6 @@ type FormInput = {
 
 const CreatePage = () => {
   const { register, handleSubmit, reset } = useForm<FormInput>();
-  const [loading, setLoading] = useState(false);
   const createProject = api.project.createProject.useMutation();
   const refetch = useRefetch();
 
@@ -68,8 +68,18 @@ const CreatePage = () => {
               {...register("githubToken")}
               placeholder="Enter your Github Personal Access Token (optional)"
             />
-            <button className="bg-primary hover:bg-primary/90 mt-4 rounded px-4 py-2 font-semibold text-white">
-              Create Project
+            <button
+              disabled={createProject.isPending}
+              className="bg-primary hover:bg-primary/90 mt-4 flex items-center gap-2 rounded px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {createProject.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating Project...
+                </>
+              ) : (
+                "Create Project"
+              )}
             </button>
           </form>
         </div>
