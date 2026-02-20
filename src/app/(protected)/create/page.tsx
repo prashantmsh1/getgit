@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import useRefetch from "@/hooks/use-refetch";
 import { api } from "@/trpc/react";
 import React from "react";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -38,9 +39,8 @@ const CreatePage = () => {
     );
   }
   return (
-    <div className="flex h-screen items-center justify-center gap-4 rounded">
-      <div>Image</div>
-      <div>
+    <div className="-mt-24 flex h-screen items-center justify-center gap-12 rounded px-4 sm:px-6">
+      <div className="w-full max-w-md">
         <div>
           <h1 className="text-xl font-bold">Link your Github Repository</h1>
           <p className="font-medium text-gray-600">
@@ -83,6 +83,15 @@ const CreatePage = () => {
             </button>
           </form>
         </div>
+      </div>
+      <div className="hidden items-center justify-center rounded-3xl bg-gray-50/50 p-8 shadow-2xl ring-1 shadow-gray-200/20 ring-gray-200/50 lg:flex dark:bg-white/5 dark:shadow-none dark:ring-white/10">
+        <Image
+          src="/create-illustration-Photoroom.png"
+          alt="Create Project"
+          width={450}
+          height={450}
+          className="object-contain transition-transform duration-500 hover:scale-105"
+        />
       </div>
     </div>
   );

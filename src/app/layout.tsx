@@ -10,7 +10,6 @@ import { Toaster } from "sonner";
 export const metadata: Metadata = {
   title: "GetGit",
   description: "Analyze the git repo with Ai",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
 const geist = Geist({
@@ -18,15 +17,24 @@ const geist = Geist({
   variable: "--font-geist-sans",
 });
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${geist.variable}`}>
+      <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
         <body>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
-          <Toaster />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <TRPCReactProvider>{children}</TRPCReactProvider>
+            <Toaster />
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

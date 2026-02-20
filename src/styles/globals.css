@@ -45,6 +45,51 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Custom Color Palette */
+  --color-deep-space-blue-50: #000408;
+  --color-deep-space-blue-100: #00090f;
+  --color-deep-space-blue-200: #00111e;
+  --color-deep-space-blue-300: #011a2d;
+  --color-deep-space-blue-400: #01233c;
+  --color-deep-space-blue-500: #012a4a;
+  --color-deep-space-blue-600: #025ca1;
+  --color-deep-space-blue-700: #048df6;
+  --color-deep-space-blue-800: #54b4fc;
+  --color-deep-space-blue-900: #aad9fe;
+
+  --color-yale-blue-50: #00060a;
+  --color-yale-blue-100: #000c14;
+  --color-yale-blue-200: #001828;
+  --color-yale-blue-300: #002e4f;
+  --color-yale-blue-400: #013b65;
+  --color-yale-blue-500: #014f86;
+  --color-yale-blue-600: #0179cf;
+  --color-yale-blue-700: #1ea0fe;
+  --color-yale-blue-800: #69c0fe;
+  --color-yale-blue-900: #b4dfff;
+
+  --color-rich-cerulean-50: #040b0f;
+  --color-rich-cerulean-100: #09161e;
+  --color-rich-cerulean-200: #112d3c;
+  --color-rich-cerulean-300: #1a435b;
+  --color-rich-cerulean-400: #225979;
+  --color-rich-cerulean-500: #2a6f97;
+  --color-rich-cerulean-600: #3a93c7;
+  --color-rich-cerulean-700: #6baed5;
+  --color-rich-cerulean-800: #9cc9e3;
+  --color-rich-cerulean-900: #cee4f1;
+
+  --color-steel-blue-50: #081115;
+  --color-steel-blue-100: #10222a;
+  --color-steel-blue-200: #214454;
+  --color-steel-blue-300: #31677e;
+  --color-steel-blue-400: #4189a7;
+  --color-steel-blue-500: #61a5c2;
+  --color-steel-blue-600: #81b7ce;
+  --color-steel-blue-700: #a0c9da;
+  --color-steel-blue-800: #c0dbe6;
+  --color-steel-blue-900: #dfedf3;
 }
 
 @layer base {

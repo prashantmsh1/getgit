@@ -2,15 +2,39 @@
 import React from "react";
 
 import useProjects from "@/hooks/use-project";
-import { ExternalLink, Github, Share } from "lucide-react";
+import { ExternalLink, Github, Folder, FolderPlus } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import CommitLog from "./commit-log";
 import AskQuestion from "./ask-question-card";
 
 const DashboardPage = () => {
-  const { project, projectId, setProjectId } = useProjects();
+  const { project } = useProjects();
 
   console.log("project", project);
+
+  if (!project) {
+    return (
+      <div className="flex h-[75vh] w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-gray-50/50 shadow-sm">
+        <div className="bg-primary/10 mb-6 flex h-20 w-20 items-center justify-center rounded-full transition-transform hover:scale-105">
+          <Folder className="text-primary h-10 w-10" />
+        </div>
+        <h2 className="mb-2 text-2xl font-semibold tracking-tight text-gray-900">
+          Project Not Found
+        </h2>
+        <p className="mb-8 max-w-md text-center text-sm text-gray-500">
+          We couldn&apos;t find the project you are looking for. It may have
+          been deleted, or you might not have selected one yet.
+        </p>
+        <Link href="/create">
+          <Button className="flex items-center gap-2">
+            <FolderPlus className="h-4 w-4" />
+            Create New Project
+          </Button>
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="w-full rounded-xl border-1 border-slate-200 bg-gray-50 p-4 shadow-md">
       <div className="flex w-full items-center justify-between">

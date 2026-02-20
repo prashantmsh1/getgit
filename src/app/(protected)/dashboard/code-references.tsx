@@ -1,10 +1,11 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { lucario } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Code2 } from "lucide-react";
 
 type Props = {
   fileReferences: {
@@ -47,46 +48,60 @@ function CodeReferences({ fileReferences }: Props) {
       html: "html",
       css: "css",
       sql: "sql",
+      md: "markdown",
+      sh: "bash",
+      yml: "yaml",
+      yaml: "yaml",
     };
     return languageMap[ext ?? ""] || "text";
   };
+
   if (!fileReferences || fileReferences.length === 0) {
     return null;
   }
+
   return (
-    <div className="max-h-[50vh] max-w-[70vw]">
-      <h2>Code References</h2>
-      <Tabs value={tab} onValueChange={setTab} className="mt-4">
-        <div className="flex max-w-[80vw] gap-x-2 overflow-x-scroll">
-          {fileReferences.map((ref) => (
-            <Button
-              key={ref.fileName}
-              value={ref.fileName}
-              className={cn(
-                "rounded-xl border-b-2 border-b-transparent px-4 py-2",
-                tab === ref.fileName
-                  ? "border-b-primary font-medium"
-                  : "border border-t-gray-300 bg-gray-100 text-gray-900 hover:bg-gray-100",
-              )}
-              onClick={() => setTab(ref.fileName)}
-            >
-              {ref.fileName}
-            </Button>
-          ))}
+    <div className="mt-2 flex max-w-full flex-col gap-4">
+      <div className="text-muted-foreground flex items-center gap-2">
+        <Code2 className="text-primary h-5 w-5" />
+        <h2 className="text-foreground text-lg font-semibold">
+          Code References
+        </h2>
+      </div>
+
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
+        <div className="flex w-full overflow-x-auto pb-2">
+          <TabsList className="bg-muted/50 h-auto w-max justify-start rounded-xl p-1 px-1 py-1">
+            {fileReferences.map((ref) => (
+              <TabsTrigger
+                key={ref.fileName}
+                value={ref.fileName}
+                className="data-[state=active]:bg-background data-[state=active]:text-primary rounded-lg px-4 py-2 text-sm transition-all data-[state=active]:shadow-sm"
+              >
+                {ref.fileName}
+              </TabsTrigger>
+            ))}
+          </TabsList>
         </div>
 
         {fileReferences.map((ref) => (
           <TabsContent
             key={ref.fileName}
             value={ref.fileName}
-            className="mt-4 max-w-7xl"
+            className="border-border/50 mt-4 w-full overflow-hidden rounded-xl border bg-[#2b3e50]"
           >
+            <div className="bg-muted/30 border-border/10 text-muted-foreground flex items-center justify-between border-b px-4 py-2 font-mono text-xs">
+              <span>{ref.fileName}</span>
+            </div>
             <SyntaxHighlighter
               showLineNumbers
               wrapLongLines
               customStyle={{
-                overflowY: "scroll",
-                maxHeight: 600,
+                margin: 0,
+                padding: "1rem",
+                overflowY: "auto",
+                maxHeight: "500px",
+                backgroundColor: "transparent",
               }}
               language={getLanguageFromFileName(ref.fileName)}
               style={lucario}

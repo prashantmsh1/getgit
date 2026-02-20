@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogHeader,
@@ -14,11 +14,18 @@ import { streamGoogleAIResponse } from "./actions";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import MDEditor from "@uiw/react-md-editor";
 import CodeReferences from "./code-references";
-import type { FileReference } from "typescript";
 import Image from "next/image";
 import { api } from "@/trpc/react";
 import useRefetch from "@/hooks/use-refetch";
 import { toast } from "sonner";
+import {
+  GitBranch,
+  Loader2,
+  MessageCircleQuestion,
+  Save,
+  Send,
+  Sparkles,
+} from "lucide-react";
 
 interface AskQuestionProps {
   className?: string;
@@ -28,6 +35,7 @@ interface FileReferences {
   sourceCode: string;
   summary: string;
 }
+
 const AskQuestion = ({ className }: AskQuestionProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,91 +45,149 @@ const AskQuestion = ({ className }: AskQuestionProps) => {
 
   const saveAnswer = api.project.saveAnswer.useMutation();
   const { project } = useProjects();
+
   const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project?.id || !question.trim()) return;
+
     setAnswer("");
     setFileReferences([]);
-    e.preventDefault();
-
-    if (!project?.id) return;
-    // Handle form submission logic here
-
     setLoading(true);
     setIsOpen(true);
 
     try {
       const { output, fileReferences: rawFileReferences } =
         await streamGoogleAIResponse(question, project.id);
-      setIsOpen(true);
 
-      console.log("output", output);
       setFileReferences(rawFileReferences);
 
       for await (const delta of readStreamableValue(output)) {
         if (delta) {
-          console.log("delta", delta);
           setAnswer((prev) => `${prev}${delta}`);
         }
       }
 
       setLoading(false);
-    } catch (error) {}
+    } catch (error) {
+      toast.error("Failed to fetch answer");
+      setLoading(false);
+    }
   };
 
   const refetch = useRefetch();
+
+  const handleSave = () => {
+    if (!project?.id) return;
+    saveAnswer.mutate(
+      {
+        projectId: project.id,
+        question,
+        answer,
+        fileReferences: fileReferences,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Answer saved successfully");
+          void refetch();
+          setIsOpen(false);
+        },
+        onError: (error) => {
+          toast.error("Failed to save answer: " + error.message);
+        },
+      },
+    );
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="h-[95svh] w-full overflow-auto overflow-y-scroll">
-          <DialogHeader className="flex flex-row">
-            <DialogTitle>
-              <Image src="/logo.png" alt="Logo" width={40} height={40} />
-            </DialogTitle>
+        <DialogContent className="bg-background border-border/50 flex h-[90vh] w-full flex-col overflow-hidden rounded-xl p-0 shadow-2xl sm:max-w-[80vw]">
+          <DialogHeader className="bg-card flex flex-row items-center justify-between border-b px-6 py-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary shadow-primary/20 flex h-8 w-8 items-center justify-center rounded-lg shadow-md">
+                <GitBranch className="h-5 w-5 text-white" />
+              </div>
+              <DialogTitle className="text-xl font-semibold tracking-tight">
+                Ask GetGit
+              </DialogTitle>
+            </div>
             <Button
-              className="disabled:bg-gray-300"
+              variant="outline"
+              className="gap-2 disabled:opacity-50"
               disabled={loading}
-              onClick={() => {
-                saveAnswer.mutate(
-                  {
-                    projectId: project!.id,
-                    question,
-                    answer,
-                    fileReferences: fileReferences,
-                  },
-                  {
-                    onSuccess: () => {
-                      toast.success("Answer saved successfully");
-                      void refetch();
-                    },
-                    onError: (error) => {
-                      toast.error("Failed to save answer: " + error.message);
-                    },
-                  },
-                );
-                setIsOpen(false);
-              }}
+              onClick={handleSave}
             >
+              <Save className="h-4 w-4" />
               Save Answer
             </Button>
           </DialogHeader>
 
-          <MDEditor.Markdown
-            source={answer || (loading ? "Generating answer..." : "")}
-            className="h-full! max-w-[70vw] overflow-y-auto"
-          />
-          <CodeReferences fileReferences={fileReferences} />
+          <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
+            {/* User Question */}
+            <div className="flex justify-end">
+              <div className="bg-primary text-primary-foreground max-w-[80%] rounded-2xl px-5 py-3 text-sm shadow-sm md:text-base">
+                {question}
+              </div>
+            </div>
+
+            {/* AI Answer */}
+            <div className="flex flex-col gap-4">
+              <div className="text-muted-foreground mb-2 flex items-center gap-2">
+                <Sparkles className="text-primary h-5 w-5 animate-pulse" />
+                <span className="text-sm font-medium">
+                  GetGit AI is thinking...
+                </span>
+              </div>
+              <div className="px-1" data-color-mode="light">
+                <MDEditor.Markdown
+                  source={
+                    answer || (loading ? "Analyzing your codebase..." : "")
+                  }
+                  className="!text-foreground prose dark:prose-invert prose-pre:bg-muted prose-pre:text-muted-foreground prose-a:text-primary max-w-none !bg-transparent font-sans"
+                />
+              </div>
+
+              {/* Code References */}
+              {!loading && fileReferences.length > 0 && (
+                <div className="mt-4 border-t pt-4">
+                  <CodeReferences fileReferences={fileReferences} />
+                </div>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
-      <Card className={cn("col-span-3", className)}>
-        <CardHeader className="text-lg font-medium">Ask a Question</CardHeader>
+      <Card
+        className={cn(
+          "border-border/50 bg-card/50 relative col-span-3 border shadow-sm backdrop-blur-sm",
+          className,
+        )}
+      >
+        <CardHeader className="flex flex-row items-center gap-2 pb-2">
+          <MessageCircleQuestion className="text-primary h-5 w-5" />
+          <CardTitle className="text-xl font-semibold">Ask GetGit</CardTitle>
+        </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="relative">
             <Textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="What file should I edit to change the homepage"
+              placeholder="Which file should I edit to change the homepage?"
+              className="focus-visible:ring-primary/50 bg-background/50 min-h-[120px] resize-none pr-4 pb-12 text-base"
             />
-            <Button className="mt-4">Ask GetGit</Button>
+            <Button
+              type="submit"
+              size="icon"
+              disabled={loading || !question.trim()}
+              className="absolute right-3 bottom-3 rounded-full transition-transform hover:scale-105"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
           </form>
         </CardContent>
       </Card>

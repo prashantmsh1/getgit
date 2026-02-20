@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   Plus,
   Presentation,
+  GitBranch,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -53,7 +54,18 @@ export function AppSidebar() {
   const { projects = [], projectId, setProjectId } = useProjects();
   return (
     <Sidebar collapsible="icon" variant={"sidebar"} className="z-30">
-      <SidebarHeader>Logo</SidebarHeader>
+      <SidebarHeader>
+        <div className="flex items-center gap-2 py-2">
+          <div className="bg-primary shadow-primary/20 flex h-8 w-8 items-center justify-center rounded-lg shadow-md">
+            <GitBranch className="h-5 w-5 text-white" />
+          </div>
+          {open && (
+            <span className="from-primary/80 to-primary bg-linear-to-r bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+              getgit
+            </span>
+          )}
+        </div>
+      </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
