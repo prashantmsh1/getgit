@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 
 import useProjects from "@/hooks/use-project";
 import { ExternalLink, Github, Folder, FolderPlus } from "lucide-react";
@@ -7,11 +7,20 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import CommitLog from "./commit-log";
 import AskQuestion from "./ask-question-card";
+import MeetingCard from "./meeting-card";
+import ArchiveButton from "./archive-button";
+import InviteButton from "./invite-button";
+import { useParams } from "next/navigation";
 
 const DashboardPage = () => {
-  const { project } = useProjects();
+  const { project, setProjectId } = useProjects();
+  const params = useParams<{ projectId: string }>();
 
-  console.log("project", project);
+  useEffect(() => {
+    if (params.projectId) {
+      setProjectId(params.projectId);
+    }
+  }, [params.projectId, setProjectId]);
 
   if (!project) {
     return (
@@ -58,13 +67,16 @@ const DashboardPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div>Team member</div>
+          <div className="flex gap-x-4">
+            <InviteButton />
+            <ArchiveButton />
+          </div>
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-5">
+      <div className="mb-4 grid grid-cols-5 gap-x-4">
         <AskQuestion className="col-span-5 md:col-span-3" />
-        <div>Meeting</div>
+        <MeetingCard />
       </div>
 
       <div>

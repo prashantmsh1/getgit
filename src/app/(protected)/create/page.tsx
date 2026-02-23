@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { redirect } from "next/navigation";
 
 type FormInput = {
   repoUrl: string;
@@ -27,9 +28,10 @@ const CreatePage = () => {
         githubToken: data.githubToken ?? "",
       },
       {
-        onSuccess: () => {
+        onSuccess: (project) => {
           toast.success("Project created successfully!");
           void refetch();
+          redirect(`/dashboard/${project.id}`);
           reset();
         },
         onError: (err) => {

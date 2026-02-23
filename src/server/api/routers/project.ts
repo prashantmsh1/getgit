@@ -3,6 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { pullCommits } from "@/lib/github";
 
 import { indexGitHubRepo } from "@/lib/github-loader";
+import { ChartScatter } from "lucide-react";
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -120,5 +121,117 @@ export const projectRouter = createTRPCRouter({
         },
       });
       return questions;
+    }),
+
+  uploadMeeting: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        meetingUrl: z.string(),
+        name: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const meeting = await ctx.db.meeting.create({
+        data: {
+          projectId: input.projectId,
+          meetingUrl: input.meetingUrl,
+          name: input.name,
+        },
+      });
+
+      return meeting;
+    }),
+
+  getMeetings: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const meetings = await ctx.db.meeting.findMany({
+        where: {
+          projectId: input.projectId,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          issues: true,
+          project: true,
+        },
+      });
+      return meetings;
+    }),
+
+  deletedMeetings: protectedProcedure
+    .input(
+      z.object({
+        meetingId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const meeting = await ctx.db.meeting.delete({
+        where: {
+          id: input.meetingId,
+        },
+      });
+      return meeting;
+    }),
+
+  getMeetingById: protectedProcedure
+    .input(
+      z.object({
+        meetingId: z.string(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const meeting = await ctx.db.meeting.findUnique({
+        where: {
+          id: input.meetingId,
+        },
+        include: {
+          issues: true,
+          project: true,
+        },
+      });
+      return meeting;
+    }),
+
+  archiveProject: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const project = await ctx.db.project.update({
+        where: {
+          id: input.projectId,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+      return project;
+    }),
+
+  getTeamMembers: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const teamMembers = await ctx.db.userToProject.findMany({
+        where: {
+          projectId: input.projectId,
+        },
+        include: {
+          user: true,
+        },
+      });
+      return teamMembers;
     }),
 });

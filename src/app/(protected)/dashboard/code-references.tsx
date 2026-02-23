@@ -9,8 +9,8 @@ import { Code2 } from "lucide-react";
 
 type Props = {
   fileReferences: {
-    fileName: string;
-    sourceCode: string;
+    fileName: string ;
+    sourceCode: string ;
     summary: string;
   }[];
 };
@@ -53,7 +53,7 @@ function CodeReferences({ fileReferences }: Props) {
       yml: "yaml",
       yaml: "yaml",
     };
-    return languageMap[ext ?? ""] || "text";
+    return languageMap[ext ?? ""] ?? "text";
   };
 
   if (!fileReferences || fileReferences.length === 0) {

@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
-        <body>
+        <body suppressHydrationWarning>
           <ThemeProvider
             attribute="class"
             defaultTheme="light"

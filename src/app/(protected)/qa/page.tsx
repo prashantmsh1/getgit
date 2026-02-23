@@ -61,16 +61,20 @@ const QaPage = () => {
       {questionIndex && (
         <SheetContent className="overflow-y-scroll sm:max-w-[80vw]">
           <SheetHeader>
-            <SheetTitle>
+            <SheetTitle className="text-foreground border-border/50 mb-4 border-b pb-2 text-2xl font-bold tracking-tight sm:text-3xl">
               {questions?.find((q) => q.id === questionIndex)?.question}
             </SheetTitle>
-            .{" "}
             <MDEditor.Markdown
               source={questions?.find((q) => q.id === questionIndex)?.answer}
             />
             <CodeReferences
               fileReferences={
-                questions?.find((q) => (q.id = questionIndex))?.fileReferences
+                (questions?.find((q) => q.id === questionIndex)
+                  ?.fileReferences as {
+                  fileName: string;
+                  sourceCode: string;
+                  summary: string;
+                }[]) ?? []
               }
             />
           </SheetHeader>

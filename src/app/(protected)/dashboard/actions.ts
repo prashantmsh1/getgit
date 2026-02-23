@@ -89,6 +89,7 @@ Answer in markdown syntax, with code snippets if needed. Be as detailed as possi
       } catch (innerError) {
         console.error("Streaming error in streamGoogleAIResponse:", innerError);
         stream.error("Failed to generate response");
+        stream.done();
       }
     })();
 
@@ -99,6 +100,7 @@ Answer in markdown syntax, with code snippets if needed. Be as detailed as possi
   } catch (error) {
     console.error("Error in streamGoogleAIResponse:", error);
     stream.error("Failed to generate response");
+    stream.done();
     return {
       output: stream.value,
       fileReferences: [],

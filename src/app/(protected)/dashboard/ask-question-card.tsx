@@ -26,6 +26,7 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
+import type Error from "next/error";
 
 interface AskQuestionProps {
   className?: string;
@@ -113,7 +114,7 @@ const AskQuestion = ({ className }: AskQuestionProps) => {
             </div>
             <Button
               variant="outline"
-              className="gap-2 disabled:opacity-50"
+              className="mr-6 gap-2 disabled:opacity-50"
               disabled={loading}
               onClick={handleSave}
             >

@@ -8,7 +8,7 @@ const SyncUser = async () => {
   const { userId } = await auth();
 
   if (!userId) {
-    throw new Error("User is not found");
+    redirect("/");
   }
 
   const client = await clerkClient();
@@ -22,7 +22,7 @@ const SyncUser = async () => {
       firstName: user.firstName ?? "",
       lastName: user.lastName ?? "",
     },
-    create: { 
+    create: {
       id: userId,
       email: user.emailAddresses[0]?.emailAddress ?? "",
       name: user.fullName ?? "",
