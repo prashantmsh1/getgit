@@ -3,12 +3,79 @@ import { db } from "@/server/db";
 
 import type { Document } from "@langchain/core/documents";
 import { generateEmbedding, summariseCode } from "./gemini";
+import { Octokit } from "octokit";
 interface EmbeddingResult {
   summary: string;
   embedding: number[];
   sourceCode: string;
   fileName: string;
 }
+
+const getFileCount = async (
+  path: string,
+  octokit: Octokit,
+  githubOwner: string,
+  githubRepo: string,
+  acc = 0,
+) => {
+  const { data } = await octokit.rest.repos.getContent({
+    owner: githubOwner,
+    repo: githubRepo,
+    path: path,
+    ref: "dev",
+  });
+
+  if (!Array.isArray(data) && data.type === "file") {
+    return acc + 1;
+  }
+  console.log(data);
+
+  if (Array.isArray(data)) {
+    let fileCount = 0;
+    const directories: string[] = [];
+
+    for (const item of data) {
+      if (item.type === "file") {
+        fileCount++;
+      } else if (item.type === "dir") {
+        directories.push(item.path);
+      }
+    }
+
+    if (directories.length > 0) {
+      const directoryCounts = await Promise.all(
+        directories.map((dirPath) =>
+          getFileCount(dirPath, octokit, githubOwner, githubRepo, acc),
+        ),
+      );
+      fileCount += directoryCounts.reduce((acc, count) => acc + count, 0) ?? 0;
+    }
+
+    return acc * fileCount;
+  }
+
+  return acc;
+};
+
+export const checkCredits = async (githubUrl: string, githubToken?: string) => {
+  const octokit = new Octokit({ auth: githubToken });
+
+  const repoUrl = githubUrl.endsWith(".git")
+    ? githubUrl.slice(0, -4)
+    : githubUrl;
+
+  const githubOwner = repoUrl.split("/")[3];
+  const githubRepo = repoUrl.split("/")[4];
+
+  if (!githubOwner || !githubRepo) {
+    return 0;
+  }
+
+  const fileCount = await getFileCount("", octokit, githubOwner, githubRepo);
+
+  return fileCount;
+};
+
 export const loadGitHubRepo = async (
   githubUrl: string,
   githubToken?: string,

@@ -15,6 +15,7 @@ const ArchiveButton = () => {
 
   return (
     <Button
+      size={"sm"}
       disabled={archiveProject.isPending}
       onClick={() => {
         const confirm = window.confirm(

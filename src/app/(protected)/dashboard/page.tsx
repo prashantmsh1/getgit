@@ -10,6 +10,7 @@ import AskQuestion from "./ask-question-card";
 import MeetingCard from "./meeting-card";
 import ArchiveButton from "./archive-button";
 import InviteButton from "./invite-button";
+import TeamMembers from "./team-members";
 import { useParams } from "next/navigation";
 
 const DashboardPage = () => {
@@ -67,7 +68,8 @@ const DashboardPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex gap-x-4">
+          <div className="flex items-center gap-x-4">
+            <TeamMembers />
             <InviteButton />
             <ArchiveButton />
           </div>

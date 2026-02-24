@@ -17,28 +17,51 @@ type FormInput = {
 
 const CreatePage = () => {
   const { register, handleSubmit, reset } = useForm<FormInput>();
+  const checkCredits = api.project.checkCredits.useMutation();
   const createProject = api.project.createProject.useMutation();
   const refetch = useRefetch();
 
   function onSubmit(data: FormInput) {
-    createProject.mutate(
-      {
-        name: data.projectName,
-        githubUrl: data.repoUrl,
-        githubToken: data.githubToken ?? "",
-      },
-      {
-        onSuccess: (project) => {
-          toast.success("Project created successfully!");
-          void refetch();
-          redirect(`/dashboard/${project.id}`);
-          reset();
+    if (!!checkCredits.data) {
+      createProject.mutate(
+        {
+          name: data.projectName,
+          githubUrl: data.repoUrl,
+          githubToken: data.githubToken ?? "",
         },
-        onError: (err) => {
-          toast.error(err.message); // Display the error message from the server
+        {
+          onSuccess: (project) => {
+            toast.success("Project created successfully!");
+            void refetch();
+            redirect(`/dashboard/${project.id}`);
+            reset();
+          },
+          onError: (err) => {
+            toast.error(err.message); // Display the error message from the server
+          },
         },
-      },
-    );
+      );
+    } else {
+      checkCredits.mutate(
+        {
+          githubUrl: data.repoUrl,
+          githubToken: data.githubToken ?? "",
+        },
+        {
+          onSuccess: (credits) => {
+            if (credits.userCredits < credits.fileCount) {
+              toast.error(
+                "You don't have enough credits to create this project.",
+              );
+              return;
+            }
+          },
+          onError: (err) => {
+            toast.error(err.message); // Display the error message from the server
+          },
+        },
+      );
+    }
   }
   return (
     <div className="-mt-24 flex h-screen items-center justify-center gap-12 rounded px-4 sm:px-6">
@@ -70,7 +93,14 @@ const CreatePage = () => {
               {...register("githubToken")}
               placeholder="Enter your Github Personal Access Token (optional)"
             />
-            <button
+
+            {!!checkCredits.data && (
+              <p className="text-sm text-gray-600">
+                You have {checkCredits.data.userCredits} credits and this
+                project requires {checkCredits.data.fileCount} credits.
+              </p>
+            )}
+          <button
               disabled={createProject.isPending}
               className="bg-primary hover:bg-primary/90 mt-4 flex items-center gap-2 rounded px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >

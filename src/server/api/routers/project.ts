@@ -2,7 +2,7 @@ import z from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { pullCommits } from "@/lib/github";
 
-import { indexGitHubRepo } from "@/lib/github-loader";
+import { checkCredits, indexGitHubRepo } from "@/lib/github-loader";
 import { ChartScatter } from "lucide-react";
 
 export const projectRouter = createTRPCRouter({
@@ -233,5 +233,35 @@ export const projectRouter = createTRPCRouter({
         },
       });
       return teamMembers;
+    }),
+
+  getMyCredits: protectedProcedure.query(async ({ ctx }) => {
+    const user = await ctx.db.user.findUnique({
+      where: {
+        id: ctx.user.userId,
+      },
+    });
+    return user;
+  }),
+
+  checkCredits: protectedProcedure
+    .input(
+      z.object({
+        githubUrl: z.string(),
+        githubToken: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const fileCount = await checkCredits(input.githubUrl, input.githubToken);
+      const userCredits = await ctx.db.user.findUnique({
+        where: {
+          id: ctx.user.userId,
+        },
+        select: {
+          credits: true,
+        },
+      });
+
+      return { fileCount, userCredits: userCredits?.credits ?? 0 };
     }),
 });
