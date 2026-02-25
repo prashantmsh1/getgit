@@ -22,7 +22,7 @@ const getFileCount = async (
     owner: githubOwner,
     repo: githubRepo,
     path: path,
-    ref: "dev",
+    ref: "main",
   });
 
   if (!Array.isArray(data) && data.type === "file") {
@@ -85,7 +85,7 @@ export const loadGitHubRepo = async (
   const loader = new GithubRepoLoader(repoUrl, {
     accessToken: githubToken ?? process.env.GITHUB_TOKEN,
 
-    branch: "dev",
+    branch: "main",
     ignoreFiles: [
       "**/node_modules/**",
       "**/.git/**",
