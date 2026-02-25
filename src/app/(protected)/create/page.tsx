@@ -7,7 +7,8 @@ import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { redirect } from "next/navigation";
+import { Router } from "next/router";
+import { useRouter } from "next/navigation";
 
 type FormInput = {
   repoUrl: string;
@@ -20,7 +21,7 @@ const CreatePage = () => {
   const checkCredits = api.project.checkCredits.useMutation();
   const createProject = api.project.createProject.useMutation();
   const refetch = useRefetch();
-
+  const router = useRouter();
   function onSubmit(data: FormInput) {
     if (!!checkCredits.data) {
       createProject.mutate(
@@ -33,8 +34,8 @@ const CreatePage = () => {
           onSuccess: (project) => {
             toast.success("Project created successfully!");
             void refetch();
-            redirect(`/dashboard/${project.id}`);
             reset();
+            router.push(`/dashboard?projectId=${project.id}`);
           },
           onError: (err) => {
             toast.error(err.message); // Display the error message from the server
@@ -63,6 +64,10 @@ const CreatePage = () => {
       );
     }
   }
+
+  const hasEnoughCredits = checkCredits?.data
+    ? checkCredits.data.userCredits >= checkCredits.data.fileCount
+    : true;
   return (
     <div className="-mt-24 flex h-screen items-center justify-center gap-12 rounded px-4 sm:px-6">
       <div className="w-full max-w-md">
@@ -77,7 +82,11 @@ const CreatePage = () => {
             <div className="h-2"></div>
             <Input
               required
-              {...register("repoUrl")}
+              {...register("repoUrl", {
+                onChange: () => {
+                  checkCredits.reset();
+                },
+              })}
               placeholder="Enter your Github repository URL"
             />
 
@@ -95,22 +104,35 @@ const CreatePage = () => {
             />
 
             {!!checkCredits.data && (
-              <p className="text-sm text-gray-600">
-                You have {checkCredits.data.userCredits} credits and this
-                project requires {checkCredits.data.fileCount} credits.
+              <p className="mt-4 text-sm text-gray-600">
+                You have {checkCredits.data.userCredits} credits.
+                <span
+                  className={
+                    hasEnoughCredits ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  {" "}
+                  This project requires {checkCredits.data.fileCount} credits.
+                </span>
               </p>
             )}
-          <button
-              disabled={createProject.isPending}
+            <button
+              disabled={
+                createProject.isPending ||
+                checkCredits.isPending ||
+                !hasEnoughCredits
+              }
               className="bg-primary hover:bg-primary/90 mt-4 flex items-center gap-2 rounded px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {createProject.isPending ? (
+              {createProject.isPending || checkCredits.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating Project...
+                  {createProject.isPending
+                    ? "Creating Project..."
+                    : "Checking Credits..."}
                 </>
               ) : (
-                "Create Project"
+                <>{!!checkCredits.data ? "Create Project" : "Check Credits"}</>
               )}
             </button>
           </form>

@@ -28,7 +28,6 @@ const getFileCount = async (
   if (!Array.isArray(data) && data.type === "file") {
     return acc + 1;
   }
-  console.log(data);
 
   if (Array.isArray(data)) {
     let fileCount = 0;
@@ -45,13 +44,13 @@ const getFileCount = async (
     if (directories.length > 0) {
       const directoryCounts = await Promise.all(
         directories.map((dirPath) =>
-          getFileCount(dirPath, octokit, githubOwner, githubRepo, acc),
+          getFileCount(dirPath, octokit, githubOwner, githubRepo, 0),
         ),
       );
       fileCount += directoryCounts.reduce((acc, count) => acc + count, 0) ?? 0;
     }
 
-    return acc * fileCount;
+    return acc + fileCount;
   }
 
   return acc;
