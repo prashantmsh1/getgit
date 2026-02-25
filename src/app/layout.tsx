@@ -7,7 +7,7 @@ import { TRPCReactProvider } from "@/trpc/react";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 
-export const metadata: Metadata = {
+export const  metadata: Metadata = {
   title: "GetGit",
   description: "Analyze the git repo with Ai",
 };
