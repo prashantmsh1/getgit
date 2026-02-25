@@ -37,7 +37,3 @@ export const processMeeting = async (meetingUrl: string) => {
   };
 };
 
-const audioFile = "https://assembly.ai/wildfires.mp3";
-
-const result = await processMeeting(audioFile);
-console.log(result);
