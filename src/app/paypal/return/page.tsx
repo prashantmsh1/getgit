@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-const PayPalReturnPage = () => {
+const PayPalReturnContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<"processing" | "success" | "error">(
@@ -122,6 +122,23 @@ const PayPalReturnPage = () => {
         </>
       )}
     </div>
+  );
+};
+
+const PayPalReturnPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Loading...
+          </h2>
+        </div>
+      }
+    >
+      <PayPalReturnContent />
+    </Suspense>
   );
 };
 
