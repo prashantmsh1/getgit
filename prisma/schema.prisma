@@ -34,6 +34,7 @@ model User {
     UserToProject      UserToProject[]
     questionsAsked     Question[]
     stripeTransactions StripeTransaction[]
+    paypalTransactions PaypalTransaction[]
 
     @@index([email])
 }
@@ -166,4 +167,25 @@ model StripeTransaction {
     userId  String
     user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     credits Int
+}
+
+
+enum PaypalTransactionStatus {
+    CREATED
+    COMPLETED
+    FAILED
+    CANCELLED
+}
+
+model PaypalTransaction {
+    id        String   @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    userId        String
+    user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    credits       Int
+    paypalOrderId String  @unique
+    captureId     String?
+    status        PaypalTransactionStatus  @default(CREATED)
 }
