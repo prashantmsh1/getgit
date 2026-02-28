@@ -1,7 +1,7 @@
 // api/webhook/stripe/route.ts
 
 import { db } from "@/server/db";
-import { headers } from "next/headers";
+
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
@@ -12,7 +12,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(request: NextRequest) {
   const body = await request.text();
 
-  const signature = (await headers()).get("Stripe-Signature");
+  const signature = request.headers.get("Stripe-Signature");
 
   let event: Stripe.Event;
 
