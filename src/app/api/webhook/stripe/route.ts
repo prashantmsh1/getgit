@@ -9,6 +9,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2026-01-28.clover",
 });
 
+// Force this route to be handled as a serverless function, not statically optimized
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
 
