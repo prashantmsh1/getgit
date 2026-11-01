@@ -7,13 +7,20 @@ const genAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const model = genAI.chats.create({
-  model: "gemini-2.0-flash",
-});
+const geminiModel = "gemini-3.8-flash";
+
+async function generateText(prompt: string, maxOutputTokens?: number) {
+  const response = await genAI.models.generateContent({
+    model: geminiModel,
+    contents: prompt,
+    config: maxOutputTokens ? { maxOutputTokens } : undefined,
+  });
+
+  return response.text?.trim() ?? "";
+}
 
 export const aiSummariseCommit = async (diff: string) => {
-  const response = await model.sendMessage({
-    message: `
+  return generateText(`
     You are an expert programmer, and you are trying to summarize a git diff.
     
     Reminders about the git diff format:
@@ -46,19 +53,16 @@ because there were more than two relevant files in the hypothetical commit.
 Do not include parts of the example in your summary.
 It is given only as an example of appropriate comments.
 
-Please summarise the following diff file: \n\n${diff} and only return the summary comments as a bulleted list.`,
-  });
-
-  return response.text;
-};
+Please summarise the following diff file: \n\n${diff} and only return the summary comments as a bulleted list.`);
+}
 
 export const summariseCode = async (doc: Document) => {
   console.log("Summarizing document...", doc.metadata.source);
 
   const code = doc.pageContent.slice(0, 10000); // Limit to first 3000 characters
 
-  const response = await model.sendMessage({
-    message: `
+  return generateText(
+    `
    Imagine you're having a one-on-one with a junior software engineer you're onboarding. Your goal is to make them understand the core purpose of the ${doc.metadata.source} file. Explain it as if you're talking directly to them, using clear language and perhaps drawing analogies if helpful. Ask if they have any initial questions at the end.
     Please provide a concise summary of the following code:
     -----
@@ -67,19 +71,15 @@ export const summariseCode = async (doc: Document) => {
     -----
     
     Give a summary no more than 100 words for the code above.`,
-    config: {
-      maxOutputTokens: 2000,
-    },
-  });
-
-  return response.text;
+    2000,
+  );
 };
 
 export const generateEmbedding = async (text: string) => {
   console.log("Generating embeddings for text of length:", text.length);
 
   const response = await genAI.models.embedContent({
-    model: "gemini-embedding-001",
+    model: "gemini-embedding-2-preview",
     contents: text,
 
     config: {

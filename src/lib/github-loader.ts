@@ -17,12 +17,13 @@ const getFileCount = async (
   githubOwner: string,
   githubRepo: string,
   acc = 0,
+  branch?: string,
 ) => {
   const { data } = await octokit.rest.repos.getContent({
     owner: githubOwner,
     repo: githubRepo,
     path: path,
-    ref: "dev",
+    ...(branch ? { ref: branch } : {}),
   });
 
   if (!Array.isArray(data) && data.type === "file") {
@@ -44,7 +45,7 @@ const getFileCount = async (
     if (directories.length > 0) {
       const directoryCounts = await Promise.all(
         directories.map((dirPath) =>
-          getFileCount(dirPath, octokit, githubOwner, githubRepo, 0),
+          getFileCount(dirPath, octokit, githubOwner, githubRepo, 0, branch),
         ),
       );
       fileCount += directoryCounts.reduce((acc, count) => acc + count, 0) ?? 0;
@@ -56,7 +57,11 @@ const getFileCount = async (
   return acc;
 };
 
-export const checkCredits = async (githubUrl: string, githubToken?: string) => {
+export const checkCredits = async (
+  githubUrl: string,
+  githubToken?: string,
+  branch?: string,
+) => {
   const octokit = new Octokit({ auth: githubToken });
 
   const repoUrl = githubUrl.endsWith(".git")
@@ -70,7 +75,14 @@ export const checkCredits = async (githubUrl: string, githubToken?: string) => {
     return 0;
   }
 
-  const fileCount = await getFileCount("", octokit, githubOwner, githubRepo);
+  const fileCount = await getFileCount(
+    "",
+    octokit,
+    githubOwner,
+    githubRepo,
+    0,
+    branch,
+  );
 
   return fileCount;
 };
@@ -78,14 +90,14 @@ export const checkCredits = async (githubUrl: string, githubToken?: string) => {
 export const loadGitHubRepo = async (
   githubUrl: string,
   githubToken?: string,
+  branch?: string,
 ) => {
   const repoUrl = githubUrl.endsWith(".git")
     ? githubUrl.slice(0, -4)
     : githubUrl;
   const loader = new GithubRepoLoader(repoUrl, {
     accessToken: githubToken ?? process.env.GITHUB_TOKEN,
-
-    branch: "dev",
+    ...(branch ? { branch } : {}),
     ignoreFiles: [
       "**/node_modules/**",
       "**/.git/**",
@@ -109,8 +121,9 @@ export const indexGitHubRepo = async (
   projectId: string,
   githubUrl: string,
   githubToken?: string,
+  branch?: string,
 ) => {
-  const docs = await loadGitHubRepo(githubUrl, githubToken);
+  const docs = await loadGitHubRepo(githubUrl, githubToken, branch);
 
   const allEmbeddings = await generateEmbeddings(docs);
 

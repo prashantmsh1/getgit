@@ -125,10 +125,9 @@ const CommitLog = () => {
                   </div>
 
                   {/* Summary */}
-                  {commit.summary && (
-                    <div className="bg-muted/50 text-muted-foreground rounded-md p-3 text-sm">
-                      <ReactMarkdown>{commit.summary}</ReactMarkdown>{" "}
-                      {/* Replace <p> with ReactMarkdown */}
+                  {commit.summary.trim() && (
+                    <div className="bg-muted/50 text-foreground rounded-md p-3 text-sm leading-6 [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+                      <ReactMarkdown>{commit.summary}</ReactMarkdown>
                     </div>
                   )}
 

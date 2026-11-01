@@ -48,7 +48,7 @@ export async function streamGoogleAIResponse(
     void (async () => {
       try {
         const { textStream } = streamText({
-          model: google("gemini-2.5-flash"),
+          model: google("gemini-3.8-flash"),
           prompt: `You are an AI code assistant who answers questions about the codebase. Your target audience is a technical intern. AI assistant is a brand new, powerful, human-like artificial intelligence. The traits of AI include expert knowledge, helpfulness, cleverness, and articulateness.
 
 AI is a well-behaved and well-mannered individual.

@@ -42,6 +42,7 @@ model Project {
     id          String    @id @default(uuid())
     name        String    @unique
     githubUrl   String
+    branch      String?
     deletedAt   DateTime?
     githubToken String?
 

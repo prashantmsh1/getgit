@@ -9,7 +9,7 @@ type Props = {
 
 const JoinProjectPage = async ({ params }: Props) => {
   const { projectId } = await params;
-  
+
   const { userId } = await auth();
 
   if (!userId) {
@@ -54,8 +54,6 @@ const JoinProjectPage = async ({ params }: Props) => {
         projectId,
       },
     });
-
-    
   } catch (error) {
     console.log(error);
     return redirect("/projects");

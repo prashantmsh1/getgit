@@ -1,6 +1,7 @@
 import z from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { pullCommits } from "@/lib/github";
+import { resolveGithubToken } from "@/lib/github-token";
 
 import { checkCredits, indexGitHubRepo } from "@/lib/github-loader";
 import { ChartScatter } from "lucide-react";
@@ -12,6 +13,7 @@ export const projectRouter = createTRPCRouter({
         name: z.string(),
         githubUrl: z.string(),
         githubToken: z.string().optional(),
+        branch: z.string().min(1),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -28,9 +30,15 @@ export const projectRouter = createTRPCRouter({
       }
 
       const currentCredits = user.credits;
+      const pastedToken = input.githubToken?.trim() || undefined;
+      const githubToken = await resolveGithubToken(
+        ctx.user.userId,
+        pastedToken,
+      );
       const fileCount = await checkCredits(
         input.githubUrl,
-        input.githubToken ?? undefined,
+        githubToken,
+        input.branch,
       );
       if (currentCredits < fileCount) {
         throw new Error(
@@ -43,7 +51,8 @@ export const projectRouter = createTRPCRouter({
         data: {
           name: input.name,
           githubUrl: input.githubUrl,
-          githubToken: input.githubToken!,
+          branch: input.branch,
+          githubToken: pastedToken ?? null,
           UserToProject: { create: { userId: ctx.user.userId } },
         },
       });
@@ -51,9 +60,10 @@ export const projectRouter = createTRPCRouter({
       await indexGitHubRepo(
         project.id,
         input.githubUrl,
-        input.githubToken ?? undefined,
+        githubToken,
+        input.branch,
       );
-      await pullCommits(project.id);
+      await pullCommits(project.id, githubToken);
 
       await ctx.db.user.update({
         where: {
@@ -92,17 +102,15 @@ export const projectRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input, ctx }) => {
-      pullCommits(input.projectId)
-        .then(() => {
-          console.log("Pull commits completed for project:", input.projectId);
-        })
-        .catch((error) => {
-          console.error(
-            "Error pulling commits for project:",
-            input.projectId,
-            error,
-          );
-        });
+      const project = await ctx.db.project.findUnique({
+        where: { id: input.projectId },
+        select: { githubToken: true },
+      });
+      const githubToken = await resolveGithubToken(
+        ctx.user.userId,
+        project?.githubToken,
+      );
+      await pullCommits(input.projectId, githubToken);
       const commits = await ctx.db.commit.findMany({
         where: {
           projectId: input.projectId,
@@ -283,10 +291,19 @@ export const projectRouter = createTRPCRouter({
       z.object({
         githubUrl: z.string(),
         githubToken: z.string().optional(),
+        branch: z.string().min(1),
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const fileCount = await checkCredits(input.githubUrl, input.githubToken);
+      const githubToken = await resolveGithubToken(
+        ctx.user.userId,
+        input.githubToken,
+      );
+      const fileCount = await checkCredits(
+        input.githubUrl,
+        githubToken,
+        input.branch,
+      );
       const userCredits = await ctx.db.user.findUnique({
         where: {
           id: ctx.user.userId,

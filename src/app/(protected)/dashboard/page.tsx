@@ -18,8 +18,14 @@ const DashboardPage = () => {
   const params = useParams<{ projectId: string }>();
 
   useEffect(() => {
-    if (params.projectId) {
-      setProjectId(params.projectId);
+    const fromQuery = new URLSearchParams(window.location.search).get(
+      "projectId",
+    );
+    const fromRoute =
+      typeof params.projectId === "string" ? params.projectId : undefined;
+    const nextProjectId = fromQuery || fromRoute;
+    if (nextProjectId) {
+      setProjectId(nextProjectId);
     }
   }, [params.projectId, setProjectId]);
 
