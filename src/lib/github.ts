@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import axios from "axios";
 import { Octokit } from "octokit";
 import { aiSummariseCommit } from "./gemini";
+import { isFailed, isReady, isSummarizing } from "@/utils/dbUtils/indexStatus";
 
 export function createOctokit(githubToken: string) {
   return new Octokit({
@@ -58,66 +59,73 @@ export const getCommitHashes = async (
 
 export const pullCommits = async (projectId: string, githubToken?: string) => {
   const { githubUrl, branch } = await fetchProjectGithubUrl(projectId);
+  await isSummarizing(projectId);
+  try {
+    const commitHashes = await getCommitHashes(githubUrl, githubToken, branch);
 
-  const commitHashes = await getCommitHashes(githubUrl, githubToken, branch);
+    const { toCreate, toUpdate } = await commitsNeedingSummary(
+      commitHashes,
+      projectId,
+    );
+    const pending = [...toCreate, ...toUpdate];
 
-  const { toCreate, toUpdate } = await commitsNeedingSummary(
-    commitHashes,
-    projectId,
-  );
-  const pending = [...toCreate, ...toUpdate];
+    const summaries = await Promise.all(
+      pending.map(async (commit) => {
+        try {
+          const summary = await summariseCommits(
+            githubUrl,
+            commit.commitHash,
+            githubToken,
+          );
+          return summary.trim();
+        } catch (error) {
+          console.error("Failed to summarise commit", commit.commitHash, error);
+          return "";
+        }
+      }),
+    );
 
-  const summaries = await Promise.all(
-    pending.map(async (commit) => {
-      try {
-        const summary = await summariseCommits(
-          githubUrl,
-          commit.commitHash,
-          githubToken,
-        );
-        return summary.trim();
-      } catch (error) {
-        console.error("Failed to summarise commit", commit.commitHash, error);
-        return "";
-      }
-    }),
-  );
+    console.log("Summarised Commits:", summaries);
+    const creates = toCreate.flatMap((commit, index) => {
+      const summary = summaries[index] ?? "";
+      return [
+        {
+          projectId,
+          commitHash: commit.commitHash,
+          commitMessage: commit.commitMessage,
+          commitAuthorName: commit.commitAuthorName,
+          commitAuthorAvatar: commit.commitAuthorAvatar,
+          commitDate: commit.commitDate,
+          summary,
+        },
+      ];
+    });
 
-  console.log("Summarised Commits:", summaries);
+    if (creates.length > 0) {
+      await db.commit.createMany({ data: creates });
+    }
 
-  const creates = toCreate.flatMap((commit, index) => {
-    const summary = summaries[index] ?? "";
-    return [
-      {
-        projectId,
-        commitHash: commit.commitHash,
-        commitMessage: commit.commitMessage,
-        commitAuthorName: commit.commitAuthorName,
-        commitAuthorAvatar: commit.commitAuthorAvatar,
-        commitDate: commit.commitDate,
-        summary,
-      },
-    ];
-  });
+    await Promise.all(
+      toUpdate.map(async (commit, index) => {
+        const summary = summaries[toCreate.length + index] ?? "";
+        if (!summary) {
+          return;
+        }
+        await db.commit.update({
+          where: { id: commit.id },
+          data: { summary },
+        });
+      }),
+    );
 
-  if (creates.length > 0) {
-    await db.commit.createMany({ data: creates });
+    console.log("Unprocessed Commits:", pending);
+    await isReady(projectId);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to index commits";
+    await isFailed(projectId, message);
+    throw error;
   }
-
-  await Promise.all(
-    toUpdate.map(async (commit, index) => {
-      const summary = summaries[toCreate.length + index] ?? "";
-      if (!summary) {
-        return;
-      }
-      await db.commit.update({
-        where: { id: commit.id },
-        data: { summary },
-      });
-    }),
-  );
-
-  console.log("Unprocessed Commits:", pending);
 };
 
 async function summariseCommits(

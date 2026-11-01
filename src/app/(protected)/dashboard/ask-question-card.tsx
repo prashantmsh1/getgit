@@ -161,13 +161,21 @@ const AskQuestion = ({ className }: AskQuestionProps) => {
 
       <Card
         className={cn(
-          "border-border/50 bg-card/50 relative col-span-3 border shadow-sm backdrop-blur-sm",
+          "border-border/70 relative h-full overflow-hidden shadow-sm",
           className,
         )}
       >
-        <CardHeader className="flex flex-row items-center gap-2 pb-2">
-          <MessageCircleQuestion className="text-primary h-5 w-5" />
-          <CardTitle className="text-xl font-semibold">Ask GetGit</CardTitle>
+        <div className="from-primary/80 to-primary/20 absolute inset-x-0 top-0 h-px bg-linear-to-r" />
+        <CardHeader className="gap-1 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+              <MessageCircleQuestion className="text-primary h-4 w-4" />
+            </div>
+            <CardTitle className="text-base font-semibold">Ask GetGit</CardTitle>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Ask about this repo and get answers grounded in the indexed code.
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="relative">
@@ -175,19 +183,20 @@ const AskQuestion = ({ className }: AskQuestionProps) => {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Which file should I edit to change the homepage?"
-              className="focus-visible:ring-primary/50 bg-background/50 min-h-[120px] resize-none pr-4 pb-12 text-base"
+              className="bg-muted/40 focus-visible:ring-primary/40 min-h-[140px] resize-none border-transparent pr-4 pb-14 text-sm shadow-none"
             />
             <Button
               type="submit"
-              size="icon"
+              size="sm"
               disabled={loading || !question.trim()}
-              className="absolute right-3 bottom-3 rounded-full transition-transform hover:scale-105"
+              className="absolute right-3 bottom-3 rounded-full"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-3.5 w-3.5" />
               )}
+              Ask
             </Button>
           </form>
         </CardContent>

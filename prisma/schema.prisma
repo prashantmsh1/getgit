@@ -53,6 +53,7 @@ model Project {
     SourceCodeEmbedding SourceCodeEmbedding[]
     questions           Question[]
     meetings            Meeting[]
+    indexJob            IndexJob?
 
     @@index([name])
 }
@@ -160,11 +161,37 @@ model SourceCodeEmbedding {
 }
 
 model StripeTransaction {
-    id        String   @id @default(uuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id              String   @id @default(uuid())
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+    stripeSessionId String?  @unique
 
     userId  String
     user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     credits Int
+}
+
+enum IndexStatus {
+    QUEUED
+    SUMMARIZING
+    EMBEDDING
+    READY
+    FAILED
+}
+
+model IndexJob {
+    id        String  @id @default(cuid())
+    projectId String  @unique
+    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    status         IndexStatus @default(QUEUED)
+    totalFiles     Int         @default(0)
+    processedFiles Int         @default(0)
+
+    // Stores array of { fileName: string, stage: "SUMMARIZE" | "EMBED", error: string }
+    failedFiles  Json    @default("[]")
+    errorMessage String? // Fatal job-level error (e.g., invalid GitHub URL or rate limit)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }

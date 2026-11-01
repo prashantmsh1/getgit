@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import type { Document } from "@langchain/core/documents";
 import { generateEmbedding, summariseCode } from "./gemini";
 import { Octokit } from "octokit";
+import { isEmbedding, isFailed, isSummarizing } from "@/utils/dbUtils/indexStatus";
 interface EmbeddingResult {
   summary: string;
   embedding: number[];
@@ -123,9 +124,32 @@ export const indexGitHubRepo = async (
   githubToken?: string,
   branch?: string,
 ) => {
-  const docs = await loadGitHubRepo(githubUrl, githubToken, branch);
+  let docs;
+  try {
+    docs = await loadGitHubRepo(githubUrl, githubToken, branch);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load repository";
+    await isFailed(projectId, message);
+    throw error;
+  }
 
+  if (docs.length === 0) {
+    await isFailed(projectId, "No indexable files found in this branch.");
+    throw new Error("No indexable files found in this branch.");
+  }
+
+  await isSummarizing(projectId);
   const allEmbeddings = await generateEmbeddings(docs);
+  if (allEmbeddings.length === 0) {
+    await isFailed(
+      projectId,
+      "Could not summarize any files. Check your API keys and try again.",
+    );
+    throw new Error("Could not summarize any files.");
+  }
+
+  await isEmbedding(projectId);
 
   await Promise.allSettled(
     allEmbeddings.map(async (embedding, index) => {

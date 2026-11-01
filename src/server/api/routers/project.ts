@@ -5,6 +5,7 @@ import { resolveGithubToken } from "@/lib/github-token";
 
 import { checkCredits, indexGitHubRepo } from "@/lib/github-loader";
 import { ChartScatter } from "lucide-react";
+import { isFailed, isQueued } from "@/utils/dbUtils/indexStatus";
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -57,13 +58,7 @@ export const projectRouter = createTRPCRouter({
         },
       });
       console.log("Project created:", project);
-      await indexGitHubRepo(
-        project.id,
-        input.githubUrl,
-        githubToken,
-        input.branch,
-      );
-      await pullCommits(project.id, githubToken);
+      await isQueued(project.id, fileCount);
 
       await ctx.db.user.update({
         where: {
@@ -75,6 +70,25 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
+
+      void (async () => {
+        try {
+          await indexGitHubRepo(
+            project.id,
+            input.githubUrl,
+            githubToken,
+            input.branch,
+          );
+          await pullCommits(project.id, githubToken);
+        } catch (error) {
+          console.error("Project indexing failed:", project.id, error);
+          await isFailed(
+            project.id,
+            error instanceof Error ? error.message : "Project indexing failed",
+          );
+        }
+      })();
+
       return project;
     }),
 
@@ -89,7 +103,11 @@ export const projectRouter = createTRPCRouter({
         deletedAt: null,
       },
       include: {
-        Commit: true,
+        Commit: {
+          orderBy: {
+            commitDate: "desc",
+          },
+        },
       },
     });
     return projects;
@@ -116,7 +134,7 @@ export const projectRouter = createTRPCRouter({
           projectId: input.projectId,
         },
         orderBy: {
-          createdAt: "desc",
+          commitDate: "desc",
         },
       });
       return commits;
@@ -285,6 +303,29 @@ export const projectRouter = createTRPCRouter({
     });
     return user;
   }),
+
+  getIndexStatus: protectedProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const job = await ctx.db.indexJob.findFirst({
+        where: {
+          projectId: input.projectId,
+          project: {
+            UserToProject: {
+              some: { userId: ctx.user.userId },
+            },
+          },
+        },
+        select: {
+          status: true,
+          totalFiles: true,
+          processedFiles: true,
+          errorMessage: true,
+          updatedAt: true,
+        },
+      });
+      return job;
+    }),
 
   checkCredits: protectedProcedure
     .input(

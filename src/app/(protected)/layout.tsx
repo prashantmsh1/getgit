@@ -25,16 +25,14 @@ const Layout = async ({ children }: Props) => {
       <SidebarProvider className="flex">
         <AppSidebar />
 
-        <main className="m-2 w-full">
-          <div className="border-sidebar-border flex w-full items-center justify-between rounded-md border bg-white p-2 shadow-sm">
+        <main className="flex min-h-svh min-w-0 flex-1 flex-col p-2">
+          <div className="border-sidebar-border flex w-full items-center justify-between rounded-xl border bg-white px-3 py-2 shadow-sm">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              {/* <Search /> */}
             </div>
             <UserButton />
           </div>
-          <div className="h-4"></div>
-          <div className="h-screen">{children}</div>
+          <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-1">{children}</div>
         </main>
       </SidebarProvider>
     </div>

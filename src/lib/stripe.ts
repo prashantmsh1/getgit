@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import Stripe from "stripe";
+import { fulfillStripeCheckoutSession } from "@/lib/stripe-fulfillment";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2026-01-28.clover",
@@ -30,11 +31,11 @@ export async function createCheckoutSession(credits: number) {
       ],
       customer_creation: "always",
       mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/create`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
-      client_reference_id: userId.toString(),
+      client_reference_id: userId,
       metadata: {
-        credits,
+        credits: String(credits),
       },
     });
     sessionUrl = session.url!;
@@ -43,4 +44,19 @@ export async function createCheckoutSession(credits: number) {
     throw new Error("Failed to create checkout session");
   }
   return redirect(sessionUrl);
+}
+
+export async function fulfillCheckoutSessionFromRedirect(sessionId: string) {
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false as const, reason: "Not signed in." };
+  }
+
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  if (session.client_reference_id !== userId) {
+    return { ok: false as const, reason: "This payment belongs to another account." };
+  }
+
+  return fulfillStripeCheckoutSession(session);
 }

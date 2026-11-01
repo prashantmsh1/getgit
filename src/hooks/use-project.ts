@@ -2,7 +2,7 @@ import { api } from "@/trpc/react";
 import { useLocalStorage } from "usehooks-ts";
 
 const useProjects = () => {
-  const { data: projects } = api.project.getProjects.useQuery();
+  const { data: projects, isLoading } = api.project.getProjects.useQuery();
   const [projectId, setProjectId] = useLocalStorage("getgit-projectId", "", {
     initializeWithValue: false,
   });
@@ -14,6 +14,7 @@ const useProjects = () => {
     project,
     projectId,
     setProjectId,
+    isLoading,
   };
 };
 

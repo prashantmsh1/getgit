@@ -1,19 +1,63 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { api } from "@/trpc/react";
 import { Info } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { createCheckoutSession } from "@/lib/stripe";
+import {
+  createCheckoutSession,
+  fulfillCheckoutSessionFromRedirect,
+} from "@/lib/stripe";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
-const BillingPage = () => {
-  const { data: user } = api.project.getMyCredits.useQuery();
+const BillingPageContent = () => {
+  const { data: user, refetch } = api.project.getMyCredits.useQuery();
   const [creditsToBuy, setCreditsToBuy] = useState<number[]>([100]);
   const [loading, setLoading] = useState(false);
+  const [fulfillingPayment, setFulfillingPayment] = useState(false);
   const creditsToBuyAmount = creditsToBuy[0]!;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const fulfilledSessionRef = useRef<string | null>(null);
 
   const price = (creditsToBuyAmount / 50).toFixed(2);
+
+  useEffect(() => {
+    const sessionId = searchParams.get("session_id");
+    if (!sessionId || fulfilledSessionRef.current === sessionId) {
+      return;
+    }
+
+    fulfilledSessionRef.current = sessionId;
+    setFulfillingPayment(true);
+
+    void fulfillCheckoutSessionFromRedirect(sessionId)
+      .then((result) => {
+        if (!result.ok) {
+          toast.error(result.reason);
+          return;
+        }
+
+        if (result.alreadyFulfilled) {
+          toast.message("Payment already applied to your account.");
+        } else {
+          toast.success(`Added ${result.credits} credits to your account.`);
+        }
+
+        void refetch();
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error ? error.message : "Could not apply payment.";
+        toast.error(message);
+      })
+      .finally(() => {
+        setFulfillingPayment(false);
+        router.replace("/billing");
+      });
+  }, [searchParams, refetch, router]);
 
   return (
     <div className="flex max-w-4xl flex-col gap-6 p-8">
@@ -22,7 +66,9 @@ const BillingPage = () => {
           Billing
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          You currently have {user?.credits} credits.
+          {fulfillingPayment
+            ? "Confirming your payment…"
+            : `You currently have ${user?.credits ?? 0} credits.`}
         </p>
       </div>
 
@@ -46,6 +92,7 @@ const BillingPage = () => {
           onValueChange={(value) => setCreditsToBuy(value)}
           value={creditsToBuy}
           className="w-full"
+          disabled={fulfillingPayment}
         />
 
         <Button
@@ -55,15 +102,25 @@ const BillingPage = () => {
             setLoading(false);
           }}
           className="w-fit bg-blue-600 font-medium text-white hover:bg-blue-700"
-          disabled={loading}
+          disabled={loading || fulfillingPayment}
         >
           {loading
             ? "Loading..."
-            : `Buy ${creditsToBuyAmount} credits for ${price}`}
+            : `Buy ${creditsToBuyAmount} credits for $${price}`}
         </Button>
       </div>
     </div>
   );
 };
+
+const BillingPage = () => (
+  <Suspense
+    fallback={
+      <div className="p-8 text-sm text-gray-500">Loading billing…</div>
+    }
+  >
+    <BillingPageContent />
+  </Suspense>
+);
 
 export default BillingPage;

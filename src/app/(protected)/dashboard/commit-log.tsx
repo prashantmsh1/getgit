@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
 const CommitLog = () => {
-  const { projectId } = useProjects();
+  const { projectId, project } = useProjects();
 
   const {
     data: commits,
@@ -47,14 +47,17 @@ const CommitLog = () => {
 
   if (error) {
     return (
-      <Card className="border-destructive/50 bg-destructive/5">
-        <CardContent className="flex items-center gap-3 p-6">
-          <AlertCircle className="text-destructive h-5 w-5" />
+      <Card className="border-destructive/30 bg-destructive/5 shadow-none">
+        <CardContent className="flex items-start gap-3">
+          <AlertCircle className="text-destructive mt-0.5 h-5 w-5 shrink-0" />
           <div>
             <p className="text-destructive font-medium">
-              Failed to load commits
+              Commit history is unavailable
             </p>
-            <p className="text-destructive/80 text-sm">{error.message}</p>
+            <p className="text-destructive/80 mt-1 text-sm">
+              The latest commits could not be loaded. Refresh the page to try
+              again.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -74,106 +77,90 @@ const CommitLog = () => {
     );
   }
 
+  const repoUrl = project?.githubUrl?.replace(/\.git$/, "").replace(/\/$/, "");
+
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Commit History</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Showing {commits.length} commit{commits.length !== 1 ? "s" : ""}
-        </p>
+    <section className="space-y-4">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Commit history</h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {commits.length} commit{commits.length === 1 ? "" : "s"} summarized
+            for this repository.
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-0">
-        {commits.map((commit, index) => (
-          <div
-            key={commit.id}
-            className="hover:bg-accent/50 relative h-auto overflow-hidden border-0 bg-transparent bg-none p-0"
-          >
-            <div
-              className={cn(
-                index === commits.length - 1 ? "h-6" : "-bottom-8",
-                "absolute top-0 left-0 flex w-6 justify-center",
-              )}
-            >
-              <div className="w-px translate-x-2 bg-gray-300"></div>
-            </div>
-            <CardContent className="p-2">
-              <div className="flex items-start gap-4">
-                {/* Timeline dot */}
-                <div className="mt-1 flex flex-col items-center">
-                  <div className="">
-                    {/* <GitCommit className="h-5 w-5 text-white" /> */}
-                    <Avatar className="z-20 mt-8 h-6 w-6">
-                      <AvatarImage
-                        src={commit.commitAuthorAvatar}
-                        alt={commit.commitAuthorName}
-                      />
-                      <AvatarFallback>
-                        {commit.commitAuthorName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+      <div className="space-y-3">
+        {commits.map((commit, index) => {
+          const commitUrl = repoUrl
+            ? `${repoUrl}/commit/${commit.commitHash}`
+            : undefined;
+
+          return (
+            <div key={commit.id} className="relative pl-8">
+              <div
+                className={cn(
+                  "bg-border absolute top-3 left-[11px] w-px",
+                  index === commits.length - 1 ? "h-4" : "bottom-[-18px]",
+                )}
+              />
+              <Avatar className="ring-background absolute top-4 left-0 z-10 h-6 w-6 ring-4">
+                <AvatarImage
+                  src={commit.commitAuthorAvatar}
+                  alt={commit.commitAuthorName}
+                />
+                <AvatarFallback className="text-[10px]">
+                  {commit.commitAuthorName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+
+              <article className="bg-card hover:border-primary/30 rounded-xl border p-4 shadow-sm transition-colors">
+                <p className="line-clamp-2 text-sm font-semibold">
+                  {commit.commitMessage}
+                </p>
+
+                {commit.summary.trim() && (
+                  <div className="bg-muted/50 text-foreground mt-3 rounded-lg px-3 py-2.5 text-sm leading-6 [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+                    <ReactMarkdown>{commit.summary}</ReactMarkdown>
                   </div>
-                </div>
+                )}
 
-                {/* Commit details */}
-                <div className="flex-1 space-y-2 rounded border p-4">
-                  {/* Message */}
-                  <div>
-                    <p className="text-foreground line-clamp-2 font-semibold">
-                      {commit.commitMessage}
-                    </p>
-                  </div>
-
-                  {/* Summary */}
-                  {commit.summary.trim() && (
-                    <div className="bg-muted/50 text-foreground rounded-md p-3 text-sm leading-6 [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
-                      <ReactMarkdown>{commit.summary}</ReactMarkdown>
-                    </div>
-                  )}
-
-                  {/* Metadata row */}
-                  <div className="flex flex-wrap items-center gap-4 pt-2">
-                    {/* Author */}
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage
-                          src={commit.commitAuthorAvatar}
-                          alt={commit.commitAuthorName}
-                        />
-                        <AvatarFallback>
-                          {commit.commitAuthorName.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-muted-foreground text-xs font-medium">
-                        {commit.commitAuthorName}
-                      </span>
-                    </div>
-
-                    {/* Timestamp */}
-                    <div className="text-muted-foreground flex items-center gap-1 text-xs">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>
-                        {formatDistanceToNow(new Date(commit.commitDate), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                    </div>
-
-                    {/* Commit hash */}
-                    <div className="flex items-center gap-1">
-                      <Code2 className="text-muted-foreground h-3.5 w-3.5" />
-                      <code className="bg-muted rounded px-2 py-1 font-mono text-xs">
+                <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                  <span className="font-medium">{commit.commitAuthorName}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {formatDistanceToNow(new Date(commit.commitDate), {
+                      addSuffix: true,
+                    })}
+                  </span>
+                  {commitUrl ? (
+                    <a
+                      href={commitUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-foreground inline-flex items-center gap-1"
+                    >
+                      <Code2 className="h-3.5 w-3.5" />
+                      <code className="bg-muted rounded-md px-1.5 py-0.5 font-mono">
                         {commit.commitHash.substring(0, 7)}
                       </code>
-                    </div>
-                  </div>
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      <Code2 className="h-3.5 w-3.5" />
+                      <code className="bg-muted rounded-md px-1.5 py-0.5 font-mono">
+                        {commit.commitHash.substring(0, 7)}
+                      </code>
+                    </span>
+                  )}
                 </div>
-              </div>
-            </CardContent>
-          </div>
-        ))}
+              </article>
+            </div>
+          );
+        })}
       </div>
-    </div>
+    </section>
   );
 };
 
