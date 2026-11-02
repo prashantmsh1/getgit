@@ -93,6 +93,10 @@ export const loadGitHubRepo = async (
   githubToken?: string,
   branch?: string,
 ) => {
+  if (!githubUrl) {
+    throw new Error("githubUrl is required to load a repository");
+  }
+
   const repoUrl = githubUrl.endsWith(".git")
     ? githubUrl.slice(0, -4)
     : githubUrl;
@@ -124,6 +128,12 @@ export const indexGitHubRepo = async (
   githubToken?: string,
   branch?: string,
 ) => {
+  if (!projectId || !githubUrl) {
+    throw new Error("projectId and githubUrl are required to index a repository");
+  }
+
+  await db.sourceCodeEmbedding.deleteMany({ where: { projectId } });
+
   let docs;
   try {
     docs = await loadGitHubRepo(githubUrl, githubToken, branch);

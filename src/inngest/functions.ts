@@ -1,23 +1,71 @@
-// src/inngest/functions.ts
-import { indexGitHubRepo } from "@/lib/github-loader";
-import { inngest } from "./client"; //
+import { NonRetriableError } from "inngest";
+import { inngest } from "./client";
 import { indexRepository } from "@/lib/repo-index";
 
-export const indexProjectFunction = inngest.createFunction(
-  //[cite: 1]
-  {
-    id: "index-project-repo", //[cite: 1]
-    retries: 2, //[cite: 1]
-    triggers: [{ event: "project/index.requested" }], //[cite: 1]
-  },
-  async ({ event, step }) => {
-    //[cite: 1]
-    const { projectId, githubUrl, githubToken, branch } = event.data; //[cite: 1]
+type IndexRequest = {
+  projectId: string;
+  githubUrl: string;
+  githubToken?: string;
+  branch?: string;
+};
 
-    // step.run gives this task its own execution window and automatic retries
-    await step.run("summarize-and-embed-repo", async () => {
-      //[cite: 1]
-      await indexRepository(projectId, githubUrl, githubToken, branch); //[cite: 1]
-    });
+function readIndexRequest(data: unknown): IndexRequest | undefined {
+  if (!data || typeof data !== "object") return undefined;
+
+  const record = data as Record<string, unknown>;
+  const nested = record.data;
+  const source =
+    typeof record.projectId === "string"
+      ? record
+      : nested &&
+          typeof nested === "object" &&
+          typeof (nested as Record<string, unknown>).projectId === "string"
+        ? (nested as Record<string, unknown>)
+        : undefined;
+
+  if (!source || typeof source.githubUrl !== "string") return undefined;
+
+  return {
+    projectId: source.projectId as string,
+    githubUrl: source.githubUrl,
+    githubToken:
+      typeof source.githubToken === "string" ? source.githubToken : undefined,
+    branch: typeof source.branch === "string" ? source.branch : undefined,
+  };
+}
+
+export const indexProjectFunction = inngest.createFunction(
+  {
+    id: "index-project-repo",
+    retries: 2,
+    triggers: [{ event: "project/index.requested" }],
+  },
+  async ({ event, events, step }) => {
+    const request =
+      readIndexRequest(event.data) ??
+      events
+        .map((item) => readIndexRequest(item.data))
+        .find((item) => item !== undefined);
+
+    if (!request) {
+      throw new NonRetriableError(
+        "project/index.requested is missing projectId or githubUrl",
+      );
+    }
+
+    // Pass the payload as a step argument so a later step execution
+    // uses the saved input instead of a fresh closure over event.data.
+    await step.run(
+      "summarize-and-embed-repo",
+      async (input: IndexRequest) => {
+        await indexRepository(
+          input.projectId,
+          input.githubUrl,
+          input.githubToken,
+          input.branch,
+        );
+      },
+      request,
+    );
   },
 );

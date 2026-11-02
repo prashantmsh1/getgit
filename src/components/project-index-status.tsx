@@ -32,7 +32,7 @@ const STATUS_META: Record<
   READY: {
     label: "Ready",
     progress: 100,
-    description: "Indexing finished. You can open the dashboard.",
+    description: "Indexing finished. You can use Q&A and meetings.",
   },
   FAILED: {
     label: "Failed",
@@ -46,6 +46,11 @@ type Props = {
   projectName: string;
   onReady?: () => void;
   onDismiss?: () => void;
+  /** When true, nothing is rendered after indexing succeeds */
+  hideWhenReady?: boolean;
+  /** Show CTA to open the project dashboard (create flow) */
+  showDashboardLink?: boolean;
+  failedActionLabel?: string;
 };
 
 export function ProjectIndexStatus({
@@ -53,6 +58,9 @@ export function ProjectIndexStatus({
   projectName,
   onReady,
   onDismiss,
+  hideWhenReady = false,
+  showDashboardLink = false,
+  failedActionLabel = "Back to form",
 }: Props) {
   const statusQuery = api.project.getIndexStatus.useQuery(
     { projectId },
@@ -67,6 +75,14 @@ export function ProjectIndexStatus({
     },
   );
 
+  if (statusQuery.isLoading) {
+    return null;
+  }
+
+  if (statusQuery.isSuccess && !statusQuery.data) {
+    return null;
+  }
+
   const status = statusQuery.data?.status ?? "QUEUED";
   const meta = STATUS_META[status] ?? DEFAULT_STATUS_META;
   const isTerminal = status === "READY" || status === "FAILED";
@@ -80,8 +96,12 @@ export function ProjectIndexStatus({
     onReadyRef.current?.();
   }, [status]);
 
+  if (hideWhenReady && status === "READY") {
+    return null;
+  }
+
   return (
-    <div className="border-border bg-muted/30 mt-6 space-y-4 rounded-lg border p-4">
+    <div className="border-border bg-muted/30 space-y-4 rounded-lg border p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium">Indexing {projectName}</p>
@@ -119,18 +139,18 @@ export function ProjectIndexStatus({
         <p className="text-destructive text-sm">{statusQuery.data.errorMessage}</p>
       ) : null}
 
-      {status === "FAILED" ? (
+      {status === "FAILED" && onDismiss ? (
         <Button
           type="button"
           variant="outline"
           className="w-full"
           onClick={onDismiss}
         >
-          Back to form
+          {failedActionLabel}
         </Button>
       ) : null}
 
-      {status === "READY" ? (
+      {status === "READY" && showDashboardLink ? (
         <Button asChild className="w-full">
           <Link href={`/dashboard?projectId=${projectId}`}>Open dashboard</Link>
         </Button>
@@ -144,4 +164,38 @@ export function ProjectIndexStatus({
       ) : null}
     </div>
   );
+}
+
+export function useProjectIndexReady(projectId: string | undefined) {
+  const statusQuery = api.project.getIndexStatus.useQuery(
+    { projectId: projectId ?? "" },
+    {
+      enabled: !!projectId,
+      refetchInterval: (query) => {
+        const status = query.state.data?.status;
+        if (status === "READY" || status === "FAILED") {
+          return false;
+        }
+        return 2000;
+      },
+    },
+  );
+
+  const status = statusQuery.data?.status;
+  const hasIndexJob = statusQuery.data != null;
+  const isReady =
+    status === "READY" || (statusQuery.isSuccess && !hasIndexJob);
+  const isIndexing =
+    !!projectId &&
+    hasIndexJob &&
+    !!status &&
+    status !== "READY" &&
+    status !== "FAILED";
+
+  return {
+    status,
+    isIndexing,
+    isReady,
+    ...statusQuery,
+  };
 }

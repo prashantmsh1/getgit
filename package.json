@@ -11,6 +11,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "project:delete": "bun scripts/delete-project.ts",
+    "projects:delete-all": "bun scripts/delete-all-projects.ts",
     "dev": "next dev --turbo",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",

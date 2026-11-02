@@ -54,11 +54,13 @@ export const isReady = async (projectId: string) => {
 };
 
 export const isFailed = async (projectId: string, errorMessage: string) => {
+  if (!projectId) return;
+
   await db.indexJob.update({
     where: { projectId },
     data: {
       status: "FAILED",
-      errorMessage: errorMessage,
+      errorMessage: errorMessage.slice(0, 500),
     },
   });
 };

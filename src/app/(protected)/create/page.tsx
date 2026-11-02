@@ -19,8 +19,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { ProjectIndexStatus } from "./project-index-status";
-
 type FormInput = {
   repoUrl: string;
   projectName: string;
@@ -54,10 +52,6 @@ const CreatePage = () => {
 
   const [debouncedUrl, setDebouncedUrl] = useState("");
   const [debouncedToken, setDebouncedToken] = useState("");
-  const [indexingProject, setIndexingProject] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -121,11 +115,12 @@ const CreatePage = () => {
         },
         {
           onSuccess: (project) => {
-            toast.success("Project created — indexing started");
+            toast.success("Project created — indexing in progress");
             setProjectId(project.id);
-            setIndexingProject({ id: project.id, name: project.name });
             checkCredits.reset();
+            reset();
             void refetch();
+            router.push(`/dashboard?projectId=${project.id}`);
           },
           onError: (err) => {
             toast.error(err.message);
@@ -169,8 +164,6 @@ const CreatePage = () => {
           ? "No branches found"
           : "Select a branch";
 
-  const isIndexing = indexingProject !== null;
-
   return (
     <div className="flex items-start justify-center gap-12 px-4 py-8 sm:px-6">
       <div className="w-full max-w-md">
@@ -184,14 +177,12 @@ const CreatePage = () => {
         <form
           className="mt-6 space-y-4"
           onSubmit={handleSubmit(onSubmit)}
-          aria-hidden={isIndexing}
         >
           <div className="space-y-2">
             <Label htmlFor="repoUrl">Repository URL</Label>
             <Input
               id="repoUrl"
               required
-              disabled={isIndexing}
               {...register("repoUrl", {
                 onChange: () => {
                   setValue("branch", "");
@@ -204,7 +195,7 @@ const CreatePage = () => {
 
           <div className="space-y-2">
             <Label htmlFor="branch">Branch</Label>
-            {isIndexing || createProject.isPending ? (
+            {createProject.isPending ? (
               <div className="border-input flex h-9 w-full items-center gap-2 rounded-md border px-3 text-sm">
                 <GitBranch className="text-muted-foreground size-4" />
                 <span>{selectedBranch}</span>
@@ -251,7 +242,6 @@ const CreatePage = () => {
             <Input
               id="projectName"
               required
-              disabled={isIndexing}
               {...register("projectName")}
               placeholder="My project"
             />
@@ -261,7 +251,6 @@ const CreatePage = () => {
             <Label htmlFor="githubToken">GitHub token</Label>
             <Input
               id="githubToken"
-              disabled={isIndexing}
               {...register("githubToken", {
                 onChange: () => {
                   checkCredits.reset();
@@ -287,7 +276,6 @@ const CreatePage = () => {
             type="submit"
             className="w-full"
             disabled={
-              isIndexing ||
               createProject.isPending ||
               checkCredits.isPending ||
               !hasEnoughCredits ||
@@ -306,18 +294,6 @@ const CreatePage = () => {
             )}
           </Button>
         </form>
-
-        {indexingProject ? (
-          <ProjectIndexStatus
-            projectId={indexingProject.id}
-            projectName={indexingProject.name}
-            onReady={() => {
-              reset();
-              router.push(`/dashboard?projectId=${indexingProject.id}`);
-            }}
-            onDismiss={() => setIndexingProject(null)}
-          />
-        ) : null}
       </div>
       <div className="hidden items-center justify-center rounded-3xl bg-gray-50/50 p-8 shadow-2xl ring-1 shadow-gray-200/20 ring-gray-200/50 lg:flex dark:bg-white/5 dark:shadow-none dark:ring-white/10">
         <Image

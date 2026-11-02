@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 import useProjects from "@/hooks/use-project";
 import { ExternalLink, Folder, FolderPlus, GitBranch, Github } from "lucide-react";
@@ -13,7 +13,10 @@ import MeetingCard from "./meeting-card";
 import ArchiveButton from "./archive-button";
 import InviteButton from "./invite-button";
 import TeamMembers from "./team-members";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { ProjectIndexStatus } from "@/components/project-index-status";
+import useRefetch from "@/hooks/use-refetch";
+import { toast } from "sonner";
 
 function repoLabel(githubUrl: string) {
   try {
@@ -29,6 +32,9 @@ function repoLabel(githubUrl: string) {
 const DashboardPage = () => {
   const { project, projects, setProjectId, isLoading } = useProjects();
   const params = useParams<{ projectId: string }>();
+  const refetch = useRefetch();
+  const indexedToastRef = useRef<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fromQuery = new URLSearchParams(window.location.search).get(
@@ -148,6 +154,20 @@ const DashboardPage = () => {
           </div>
         </div>
       </header>
+
+      <ProjectIndexStatus
+        projectId={project.id}
+        projectName={project.name}
+        hideWhenReady
+        failedActionLabel="Create another project"
+        onReady={() => {
+          if (indexedToastRef.current === project.id) return;
+          indexedToastRef.current = project.id;
+          toast.success("Project indexing complete");
+          void refetch();
+        }}
+        onDismiss={() => router.push("/create")}
+      />
 
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-5">
         <AskQuestion className="lg:col-span-3" />

@@ -18,6 +18,7 @@ import Image from "next/image";
 import { api } from "@/trpc/react";
 import useRefetch from "@/hooks/use-refetch";
 import { toast } from "sonner";
+import { useProjectIndexReady } from "@/components/project-index-status";
 import {
   GitBranch,
   Loader2,
@@ -46,6 +47,8 @@ const AskQuestion = ({ className }: AskQuestionProps) => {
 
   const saveAnswer = api.project.saveAnswer.useMutation();
   const { project } = useProjects();
+  const { isIndexing, isReady } = useProjectIndexReady(project?.id);
+  const qaDisabled = !project?.id || isIndexing || !isReady;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,7 +177,9 @@ const AskQuestion = ({ className }: AskQuestionProps) => {
             <CardTitle className="text-base font-semibold">Ask GetGit</CardTitle>
           </div>
           <p className="text-muted-foreground text-sm">
-            Ask about this repo and get answers grounded in the indexed code.
+            {isIndexing
+              ? "Indexing is in progress. Q&A will unlock when embedding finishes."
+              : "Ask about this repo and get answers grounded in the indexed code."}
           </p>
         </CardHeader>
         <CardContent>
@@ -183,12 +188,13 @@ const AskQuestion = ({ className }: AskQuestionProps) => {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Which file should I edit to change the homepage?"
+              disabled={qaDisabled}
               className="bg-muted/40 focus-visible:ring-primary/40 min-h-[140px] resize-none border-transparent pr-4 pb-14 text-sm shadow-none"
             />
             <Button
               type="submit"
               size="sm"
-              disabled={loading || !question.trim()}
+              disabled={loading || !question.trim() || qaDisabled}
               className="absolute right-3 bottom-3 rounded-full"
             >
               {loading ? (

@@ -3,9 +3,9 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { pullCommits } from "@/lib/github";
 import { resolveGithubToken } from "@/lib/github-token";
 
-import { checkCredits, indexGitHubRepo } from "@/lib/github-loader";
-import { ChartScatter } from "lucide-react";
+import { checkCredits } from "@/lib/github-loader";
 import { isFailed, isQueued } from "@/utils/dbUtils/indexStatus";
+import { inngest } from "@/inngest/client";
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -60,6 +60,23 @@ export const projectRouter = createTRPCRouter({
       console.log("Project created:", project);
       await isQueued(project.id, fileCount);
 
+      try {
+        await inngest.send({
+          name: "project/index.requested",
+          data: {
+            projectId: project.id,
+            githubUrl: input.githubUrl,
+            githubToken: githubToken,
+            branch: input.branch,
+          },
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to queue indexing";
+        await isFailed(project.id, message);
+        throw new Error(`Could not start indexing: ${message}`);
+      }
+
       await ctx.db.user.update({
         where: {
           id: ctx.user.userId,
@@ -70,24 +87,6 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
-
-      void (async () => {
-        try {
-          await indexGitHubRepo(
-            project.id,
-            input.githubUrl,
-            githubToken,
-            input.branch,
-          );
-          await pullCommits(project.id, githubToken);
-        } catch (error) {
-          console.error("Project indexing failed:", project.id, error);
-          await isFailed(
-            project.id,
-            error instanceof Error ? error.message : "Project indexing failed",
-          );
-        }
-      })();
 
       return project;
     }),

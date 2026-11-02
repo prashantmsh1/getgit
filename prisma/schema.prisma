@@ -152,12 +152,16 @@ model SourceCodeEmbedding {
 
     summaryEmbedding Unsupported("vector(768)")? // Adjust dimension as needed
     sourceCode       String
-
-    fileName String
+    blobSha          String // Git blob hash of the file content
+    commitSha        String // Commit SHA when this file was indexed
+    fileName         String
 
     summary   String
     projectId String
     project   Project @relation(fields: [projectId], references: [id])
+
+    @@unique([projectId, fileName])
+    @@index([projectId])
 }
 
 model StripeTransaction {
