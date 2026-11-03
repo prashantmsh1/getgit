@@ -13,6 +13,7 @@ import MeetingCard from "./meeting-card";
 import ArchiveButton from "./archive-button";
 import InviteButton from "./invite-button";
 import TeamMembers from "./team-members";
+import SyncProjectButton from "./sync-project-button";
 import { useParams, useRouter } from "next/navigation";
 import { ProjectIndexStatus } from "@/components/project-index-status";
 import useRefetch from "@/hooks/use-refetch";
@@ -121,6 +122,7 @@ const DashboardPage = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <SyncProjectButton />
             <TeamMembers />
             <InviteButton />
             <ArchiveButton />

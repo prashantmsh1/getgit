@@ -6,6 +6,11 @@ import { resolveGithubToken } from "@/lib/github-token";
 import { checkCredits } from "@/lib/github-loader";
 import { isFailed, isQueued } from "@/utils/dbUtils/indexStatus";
 import { inngest } from "@/inngest/client";
+import { TRPCError } from "@trpc/server";
+import { computeRepoDiff } from "@/lib/github-diff";
+import { Octokit } from "octokit";
+
+const CREDITS_PER_FILE = 1;
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -355,4 +360,128 @@ export const projectRouter = createTRPCRouter({
 
       return { fileCount, userCredits: userCredits?.credits ?? 0 };
     }),
+
+  // Pre-flight check for the UI to display the exact charge to the user
+  getSyncQuote: protectedProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const project = await ctx.db.project.findFirstOrThrow({
+        where: {
+          id: input.projectId,
+          UserToProject: {
+            some: {
+              userId: ctx.user.userId,
+            },
+          },
+        },
+      });
+
+      const [owner, repo] = parseOwnerAndRepo(project.githubUrl);
+      const token = await resolveGithubToken(
+        ctx.user.userId,
+        project.githubToken ?? undefined,
+      );
+      const octokit = new Octokit({ auth: token || process.env.GITHUB_TOKEN });
+      const branch = project.branch || "main";
+
+      const diff = await computeRepoDiff(
+        project.id,
+        owner,
+        repo,
+        branch,
+        octokit,
+      );
+      const creditCost = diff.toAddOrUpdate.length * CREDITS_PER_FILE;
+
+      const user = await ctx.db.user.findUniqueOrThrow({
+        where: { id: ctx.user.userId },
+        select: { credits: true },
+      });
+
+      return {
+        filesToUpdate: diff.toAddOrUpdate.length,
+        filesToDelete: diff.toDelete.length,
+        unchangedCount: diff.unchangedCount,
+        creditCost,
+        userCredits: user.credits,
+        canAfford: user.credits >= creditCost,
+      };
+    }),
+
+  // Execute sync and charge the delta
+  syncProject: protectedProcedure
+    .input(z.object({ projectId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const project = await ctx.db.project.findFirstOrThrow({
+        where: {
+          id: input.projectId,
+          UserToProject: {
+            some: {
+              userId: ctx.user.userId,
+            },
+          },
+        },
+      });
+
+      const [owner, repo] = parseOwnerAndRepo(project.githubUrl);
+      const token = await resolveGithubToken(
+        ctx.user.userId,
+        project.githubToken ?? undefined,
+      );
+      const octokit = new Octokit({ auth: token || process.env.GITHUB_TOKEN });
+      const branch = project.branch || "main";
+      const diff = await computeRepoDiff(
+        project.id,
+        owner,
+        repo,
+        branch,
+        octokit,
+      );
+
+      const creditCost = diff.toAddOrUpdate.length * CREDITS_PER_FILE;
+
+      // Atomic credit verification and deduction
+      await ctx.db.$transaction(async (tx) => {
+        const user = await tx.user.findUniqueOrThrow({
+          where: { id: ctx.user.userId },
+        });
+
+        if (user.credits < creditCost) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Insufficient credits. Need ${creditCost}, have ${user.credits}.`,
+          });
+        }
+
+        if (creditCost > 0) {
+          await tx.user.update({
+            where: { id: ctx.user.userId },
+            data: { credits: { decrement: creditCost } },
+          });
+        }
+      });
+
+      // Dispatch to background queue
+      await inngest.send({
+        name: "project/sync.requested",
+        data: {
+          projectId: project.id,
+          owner,
+          repo,
+          branch,
+          githubToken: token,
+        },
+      });
+
+      return {
+        message: "Sync started",
+        chargedCredits: creditCost,
+        changedFiles: diff.toAddOrUpdate.length,
+      };
+    }),
 });
+
+function parseOwnerAndRepo(githubUrl: string): [string, string] {
+  const parts = githubUrl.replace(/\/+$/, "").replace(/\.git$/, "").split("/");
+  return [parts[parts.length - 2]!, parts[parts.length - 1]!];
+}

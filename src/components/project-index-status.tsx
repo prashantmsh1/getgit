@@ -75,6 +75,18 @@ export function ProjectIndexStatus({
     },
   );
 
+  const onReadyRef = useRef(onReady);
+  const notifiedReadyRef = useRef(false);
+  onReadyRef.current = onReady;
+
+  const status = statusQuery.data?.status ?? "QUEUED";
+
+  useEffect(() => {
+    if (status !== "READY" || notifiedReadyRef.current) return;
+    notifiedReadyRef.current = true;
+    onReadyRef.current?.();
+  }, [status]);
+
   if (statusQuery.isLoading) {
     return null;
   }
@@ -83,18 +95,8 @@ export function ProjectIndexStatus({
     return null;
   }
 
-  const status = statusQuery.data?.status ?? "QUEUED";
   const meta = STATUS_META[status] ?? DEFAULT_STATUS_META;
   const isTerminal = status === "READY" || status === "FAILED";
-  const onReadyRef = useRef(onReady);
-  const notifiedReadyRef = useRef(false);
-  onReadyRef.current = onReady;
-
-  useEffect(() => {
-    if (status !== "READY" || notifiedReadyRef.current) return;
-    notifiedReadyRef.current = true;
-    onReadyRef.current?.();
-  }, [status]);
 
   if (hideWhenReady && status === "READY") {
     return null;
