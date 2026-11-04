@@ -88,6 +88,39 @@ export const checkCredits = async (
   return fileCount;
 };
 
+async function getBranchHeadCommitSha(
+  githubUrl: string,
+  githubToken?: string,
+  branch?: string,
+): Promise<string> {
+  const octokit = new Octokit({ auth: githubToken ?? process.env.GITHUB_TOKEN });
+  const repoUrl = githubUrl.endsWith(".git")
+    ? githubUrl.slice(0, -4)
+    : githubUrl;
+  const githubOwner = repoUrl.split("/")[3];
+  const githubRepo = repoUrl.split("/")[4];
+  if (!githubOwner || !githubRepo) {
+    return "";
+  }
+
+  const resolvedBranch =
+    branch ??
+    (
+      await octokit.rest.repos.get({
+        owner: githubOwner,
+        repo: githubRepo,
+      })
+    ).data.default_branch;
+
+  const { data } = await octokit.rest.repos.getBranch({
+    owner: githubOwner,
+    repo: githubRepo,
+    branch: resolvedBranch,
+  });
+
+  return data.commit.sha;
+}
+
 export const loadGitHubRepo = async (
   githubUrl: string,
   githubToken?: string,
@@ -161,6 +194,8 @@ export const indexGitHubRepo = async (
 
   await isEmbedding(projectId);
 
+  const commitSha = await getBranchHeadCommitSha(githubUrl, githubToken, branch);
+
   await Promise.allSettled(
     allEmbeddings.map(async (embedding, index) => {
       // Do something with each embedding
@@ -174,6 +209,8 @@ export const indexGitHubRepo = async (
             summary: embedding.summary ?? "",
             sourceCode: embedding.sourceCode,
             projectId: projectId,
+            blobSha: "",
+            commitSha,
           },
         });
 

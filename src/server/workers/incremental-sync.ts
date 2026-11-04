@@ -1,8 +1,7 @@
 // src/server/workers/incrementalSync.ts
 import { db } from "@/server/db";
 import { Octokit } from "octokit";
-import { generateEmbeddings } from "@/lib/github-loader";
-import { summariseCode } from "@/lib/gemini";
+import { generateEmbedding, summariseCode } from "@/lib/gemini";
 import { computeRepoDiff } from "@/lib/git-diff";
 
 export async function runIncrementalSync(
@@ -60,12 +59,14 @@ export async function runIncrementalSync(
           metadata: { source: fileName },
         });
 
-        const embedding = await generateEmbeddings([
-          {
-            pageContent: summary,
-            metadata: { source: fileName },
-          },
-        ]);
+        if (!summary) {
+          throw new Error(`Failed to summarize ${fileName}`);
+        }
+
+        const embeddingVector = await generateEmbedding(summary);
+        if (!embeddingVector) {
+          throw new Error(`Failed to embed summary for ${fileName}`);
+        }
 
         // Upsert into SourceCodeEmbedding
         const record = await db.sourceCodeEmbedding.upsert({
@@ -94,7 +95,7 @@ export async function runIncrementalSync(
         // Store vector embedding using raw SQL
         await db.$executeRaw`
           UPDATE "SourceCodeEmbedding"
-          SET "summaryEmbedding" = ${embedding}::vector
+          SET "summaryEmbedding" = ${embeddingVector}::vector
           WHERE "id" = ${record.id}
         `;
       }),
