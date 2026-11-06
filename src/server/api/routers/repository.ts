@@ -36,7 +36,9 @@ export const repositoryRouter = createTRPCRouter({
           error instanceof Error ? error.message : "Failed to get branches";
         throw new TRPCError({
           code:
-            message === "GitHub token not found" ? "UNAUTHORIZED" : "BAD_REQUEST",
+            message === "GitHub token not found"
+              ? "UNAUTHORIZED"
+              : "BAD_REQUEST",
           message,
         });
       }

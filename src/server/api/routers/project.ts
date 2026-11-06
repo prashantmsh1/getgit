@@ -535,6 +535,9 @@ export const projectRouter = createTRPCRouter({
 });
 
 function parseOwnerAndRepo(githubUrl: string): [string, string] {
-  const parts = githubUrl.replace(/\/+$/, "").replace(/\.git$/, "").split("/");
+  const parts = githubUrl
+    .replace(/\/+$/, "")
+    .replace(/\.git$/, "")
+    .split("/");
   return [parts[parts.length - 2]!, parts[parts.length - 1]!];
 }

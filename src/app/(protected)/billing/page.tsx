@@ -44,9 +44,10 @@ function formatBillingDate(iso: Date | string) {
   });
 }
 
-function kindLabel(
-  kind: "PURCHASE" | "PROJECT_INDEX" | "REPO_SYNC",
-): { label: string; variant: "default" | "secondary" | "outline" } {
+function kindLabel(kind: "PURCHASE" | "PROJECT_INDEX" | "REPO_SYNC"): {
+  label: string;
+  variant: "default" | "secondary" | "outline";
+} {
   switch (kind) {
     case "PURCHASE":
       return { label: "Purchase", variant: "default" };
@@ -60,8 +61,11 @@ function kindLabel(
 }
 
 const BillingPageContent = () => {
-  const { data: overview, refetch, isLoading } =
-    api.project.getBillingOverview.useQuery();
+  const {
+    data: overview,
+    refetch,
+    isLoading,
+  } = api.project.getBillingOverview.useQuery();
   const [creditsToBuy, setCreditsToBuy] = useState<number[]>([100]);
   const [loading, setLoading] = useState(false);
   const [fulfillingPayment, setFulfillingPayment] = useState(false);
@@ -173,11 +177,11 @@ const BillingPageContent = () => {
           </CardHeader>
           <CardContent>
             {isLoading && !overview ? (
-              <p className="text-sm text-muted-foreground">Loading balance…</p>
+              <p className="text-muted-foreground text-sm">Loading balance…</p>
             ) : (
               <>
                 <p
-                  className="text-4xl font-bold tabular-nums tracking-tight text-emerald-900 dark:text-emerald-100"
+                  className="text-4xl font-bold tracking-tight text-emerald-900 tabular-nums dark:text-emerald-100"
                   aria-live="polite"
                 >
                   {balance.toLocaleString()}
@@ -207,7 +211,7 @@ const BillingPageContent = () => {
               projects and syncs use credits automatically.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-muted-foreground text-sm">
             <ul className="list-inside list-disc space-y-1.5">
               <li>New project: we charge for every file in the repo once.</li>
               <li>
@@ -243,15 +247,15 @@ const BillingPageContent = () => {
         <CardContent className="flex flex-col gap-6">
           <div className="space-y-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="text-sm font-medium text-foreground">
+              <span className="text-foreground text-sm font-medium">
                 Package size
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 <strong className="text-foreground tabular-nums">
                   {creditsToBuyAmount.toLocaleString()}
                 </strong>{" "}
-                credits ·{" "}
-                <strong className="text-foreground">${price}</strong> total
+                credits · <strong className="text-foreground">${price}</strong>{" "}
+                total
               </span>
             </div>
             <Slider
@@ -268,7 +272,9 @@ const BillingPageContent = () => {
           </div>
 
           <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium text-foreground">Payment method</p>
+            <p className="text-foreground text-sm font-medium">
+              Payment method
+            </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
@@ -362,7 +368,7 @@ const BillingPageContent = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <History className="h-5 w-5 text-muted-foreground" aria-hidden />
+            <History className="text-muted-foreground h-5 w-5" aria-hidden />
             <div>
               <CardTitle className="text-lg">Transaction history</CardTitle>
               <CardDescription>
@@ -373,11 +379,11 @@ const BillingPageContent = () => {
         </CardHeader>
         <CardContent>
           {isLoading && !overview ? (
-            <p className="text-sm text-muted-foreground">Loading activity…</p>
+            <p className="text-muted-foreground text-sm">Loading activity…</p>
           ) : entries.length === 0 ? (
-            <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-8 text-center">
-              <p className="font-medium text-foreground">No activity yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+            <div className="bg-muted/30 rounded-lg border border-dashed px-4 py-8 text-center">
+              <p className="text-foreground font-medium">No activity yet</p>
+              <p className="text-muted-foreground mt-1 text-sm">
                 When you purchase credits or use them on a project, entries will
                 show up here. Activity from before this feature was enabled may
                 not be listed.
@@ -390,10 +396,10 @@ const BillingPageContent = () => {
                   <TableHead className="w-[32%]">What happened</TableHead>
                   <TableHead className="hidden sm:table-cell">Type</TableHead>
                   <TableHead className="text-right">Credits</TableHead>
-                  <TableHead className="text-right hidden md:table-cell">
+                  <TableHead className="hidden text-right md:table-cell">
                     Balance after
                   </TableHead>
-                  <TableHead className="text-right hidden lg:table-cell">
+                  <TableHead className="hidden text-right lg:table-cell">
                     Date
                   </TableHead>
                 </TableRow>
@@ -406,15 +412,15 @@ const BillingPageContent = () => {
                     <TableRow key={row.id}>
                       <TableCell>
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-medium leading-snug">
+                          <span className="leading-snug font-medium">
                             {row.title}
                           </span>
                           {row.detail ? (
-                            <span className="text-xs text-muted-foreground leading-snug max-w-[28rem]">
+                            <span className="text-muted-foreground max-w-[28rem] text-xs leading-snug">
                               {row.detail}
                             </span>
                           ) : null}
-                          <span className="text-xs text-muted-foreground sm:hidden">
+                          <span className="text-muted-foreground text-xs sm:hidden">
                             {formatBillingDate(row.createdAt)}
                           </span>
                         </div>
@@ -422,7 +428,7 @@ const BillingPageContent = () => {
                       <TableCell className="hidden sm:table-cell">
                         <Badge variant={k.variant}>{k.label}</Badge>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums font-medium">
+                      <TableCell className="text-right font-medium tabular-nums">
                         <span
                           className={
                             isPositive
@@ -445,10 +451,10 @@ const BillingPageContent = () => {
                           {Math.abs(row.amount).toLocaleString()}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground hidden md:table-cell">
+                      <TableCell className="text-muted-foreground hidden text-right tabular-nums md:table-cell">
                         {row.balanceAfter.toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground text-sm hidden lg:table-cell whitespace-nowrap">
+                      <TableCell className="text-muted-foreground hidden text-right text-sm whitespace-nowrap lg:table-cell">
                         {formatBillingDate(row.createdAt)}
                       </TableCell>
                     </TableRow>
@@ -465,9 +471,7 @@ const BillingPageContent = () => {
 
 const BillingPage = () => (
   <Suspense
-    fallback={
-      <div className="p-8 text-sm text-gray-500">Loading billing…</div>
-    }
+    fallback={<div className="p-8 text-sm text-gray-500">Loading billing…</div>}
   >
     <BillingPageContent />
   </Suspense>
