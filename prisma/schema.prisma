@@ -31,9 +31,10 @@ model User {
     imageUrl           String
     createdAt          DateTime            @default(now())
     updatedAt          DateTime            @updatedAt
-    UserToProject      UserToProject[]
-    questionsAsked     Question[]
-    stripeTransactions StripeTransaction[]
+    UserToProject         UserToProject[]
+    questionsAsked        Question[]
+    stripeTransactions    StripeTransaction[]
+    creditLedgerEntries   CreditLedgerEntry[]
 
     @@index([email])
 }
@@ -173,6 +174,30 @@ model StripeTransaction {
     userId  String
     user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     credits Int
+}
+
+enum CreditLedgerKind {
+    PURCHASE
+    PROJECT_INDEX
+    REPO_SYNC
+}
+
+/// Append-only log of credit changes for billing history.
+model CreditLedgerEntry {
+    id              String           @id @default(uuid())
+    createdAt       DateTime         @default(now())
+    kind            CreditLedgerKind
+    amount          Int
+    balanceAfter    Int
+    title           String
+    detail          String?
+    projectId       String?
+    stripeSessionId String?
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId, createdAt(sort: Desc)])
 }
 
 enum IndexStatus {

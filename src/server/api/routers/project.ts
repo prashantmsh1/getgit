@@ -82,15 +82,29 @@ export const projectRouter = createTRPCRouter({
         throw new Error(`Could not start indexing: ${message}`);
       }
 
-      await ctx.db.user.update({
-        where: {
-          id: ctx.user.userId,
-        },
-        data: {
-          credits: {
-            decrement: fileCount,
+      await ctx.db.$transaction(async (tx) => {
+        const updated = await tx.user.update({
+          where: {
+            id: ctx.user.userId,
           },
-        },
+          data: {
+            credits: {
+              decrement: fileCount,
+            },
+          },
+          select: { credits: true },
+        });
+        await tx.creditLedgerEntry.create({
+          data: {
+            userId: ctx.user.userId,
+            kind: "PROJECT_INDEX",
+            amount: -fileCount,
+            balanceAfter: updated.credits,
+            title: `Initial index: ${input.name}`,
+            detail: `${fileCount} credit${fileCount === 1 ? "" : "s"} used to index files in this repository.`,
+            projectId: project.id,
+          },
+        });
       });
 
       return project;
@@ -299,13 +313,40 @@ export const projectRouter = createTRPCRouter({
       return teamMembers;
     }),
 
-  getMyCredits: protectedProcedure.query(async ({ ctx }) => {
-    const user = await ctx.db.user.findUnique({
-      where: {
-        id: ctx.user.userId,
-      },
-    });
-    return user;
+  /** Current balance plus recent credit activity for billing. */
+  getBillingOverview: protectedProcedure.query(async ({ ctx }) => {
+    const [user, entries] = await Promise.all([
+      ctx.db.user.findUnique({
+        where: { id: ctx.user.userId },
+        select: { credits: true },
+      }),
+      ctx.db.creditLedgerEntry.findMany({
+        where: { userId: ctx.user.userId },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        select: {
+          id: true,
+          createdAt: true,
+          kind: true,
+          amount: true,
+          balanceAfter: true,
+          title: true,
+          detail: true,
+        },
+      }),
+    ]);
+
+    if (!user) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "User not found",
+      });
+    }
+
+    return {
+      credits: user.credits,
+      entries,
+    };
   }),
 
   getIndexStatus: protectedProcedure
@@ -454,9 +495,21 @@ export const projectRouter = createTRPCRouter({
         }
 
         if (creditCost > 0) {
-          await tx.user.update({
+          const updated = await tx.user.update({
             where: { id: ctx.user.userId },
             data: { credits: { decrement: creditCost } },
+            select: { credits: true },
+          });
+          await tx.creditLedgerEntry.create({
+            data: {
+              userId: ctx.user.userId,
+              kind: "REPO_SYNC",
+              amount: -creditCost,
+              balanceAfter: updated.credits,
+              title: `Repository sync: ${project.name}`,
+              detail: `${creditCost} credit${creditCost === 1 ? "" : "s"} used to index changed files.`,
+              projectId: project.id,
+            },
           });
         }
       });

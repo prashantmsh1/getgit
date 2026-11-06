@@ -50,7 +50,7 @@ export default function SyncProjectButton() {
       void utils.project.getSyncQuote.invalidate({
         projectId: projectId ?? "",
       });
-      void utils.project.getMyCredits.invalidate();
+      void utils.project.getBillingOverview.invalidate();
       void utils.project.getCommits.invalidate({ projectId: projectId ?? "" });
       void refetch();
       setOpen(false);

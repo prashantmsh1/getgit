@@ -41,21 +41,33 @@ export async function fulfillStripeCheckoutSession(
     return { ok: false, reason: "User account not found. Try signing in again." };
   }
 
-  await db.$transaction([
-    db.stripeTransaction.create({
+  await db.$transaction(async (tx) => {
+    await tx.stripeTransaction.create({
       data: {
         userId,
         credits,
         stripeSessionId: session.id,
       },
-    }),
-    db.user.update({
+    });
+    const updated = await tx.user.update({
       where: { id: userId },
       data: {
         credits: { increment: credits },
       },
-    }),
-  ]);
+      select: { credits: true },
+    });
+    await tx.creditLedgerEntry.create({
+      data: {
+        userId,
+        kind: "PURCHASE",
+        amount: credits,
+        balanceAfter: updated.credits,
+        title: "Credits purchased",
+        detail: `Payment completed — ${credits} credit${credits === 1 ? "" : "s"} added to your balance.`,
+        stripeSessionId: session.id,
+      },
+    });
+  });
 
   return { ok: true, credits };
 }
