@@ -4,6 +4,11 @@ import { db } from "@/server/db";
 import type { Document } from "@langchain/core/documents";
 import { generateEmbedding, summariseCode } from "./gemini";
 import { Octokit } from "octokit";
+import {
+  isEmbedding,
+  isFailed,
+  isSummarizing,
+} from "@/utils/dbUtils/indexStatus";
 interface EmbeddingResult {
   summary: string;
   embedding: number[];
@@ -17,12 +22,13 @@ const getFileCount = async (
   githubOwner: string,
   githubRepo: string,
   acc = 0,
+  branch?: string,
 ) => {
   const { data } = await octokit.rest.repos.getContent({
     owner: githubOwner,
     repo: githubRepo,
     path: path,
-    ref: "main",
+    ...(branch ? { ref: branch } : {}),
   });
 
   if (!Array.isArray(data) && data.type === "file") {
@@ -44,7 +50,7 @@ const getFileCount = async (
     if (directories.length > 0) {
       const directoryCounts = await Promise.all(
         directories.map((dirPath) =>
-          getFileCount(dirPath, octokit, githubOwner, githubRepo, 0),
+          getFileCount(dirPath, octokit, githubOwner, githubRepo, 0, branch),
         ),
       );
       fileCount += directoryCounts.reduce((acc, count) => acc + count, 0) ?? 0;
@@ -56,7 +62,11 @@ const getFileCount = async (
   return acc;
 };
 
-export const checkCredits = async (githubUrl: string, githubToken?: string) => {
+export const checkCredits = async (
+  githubUrl: string,
+  githubToken?: string,
+  branch?: string,
+) => {
   const octokit = new Octokit({ auth: githubToken });
 
   const repoUrl = githubUrl.endsWith(".git")
@@ -70,22 +80,68 @@ export const checkCredits = async (githubUrl: string, githubToken?: string) => {
     return 0;
   }
 
-  const fileCount = await getFileCount("", octokit, githubOwner, githubRepo);
+  const fileCount = await getFileCount(
+    "",
+    octokit,
+    githubOwner,
+    githubRepo,
+    0,
+    branch,
+  );
 
   return fileCount;
 };
 
+async function getBranchHeadCommitSha(
+  githubUrl: string,
+  githubToken?: string,
+  branch?: string,
+): Promise<string> {
+  const octokit = new Octokit({
+    auth: githubToken ?? process.env.GITHUB_TOKEN,
+  });
+  const repoUrl = githubUrl.endsWith(".git")
+    ? githubUrl.slice(0, -4)
+    : githubUrl;
+  const githubOwner = repoUrl.split("/")[3];
+  const githubRepo = repoUrl.split("/")[4];
+  if (!githubOwner || !githubRepo) {
+    return "";
+  }
+
+  const resolvedBranch =
+    branch ??
+    (
+      await octokit.rest.repos.get({
+        owner: githubOwner,
+        repo: githubRepo,
+      })
+    ).data.default_branch;
+
+  const { data } = await octokit.rest.repos.getBranch({
+    owner: githubOwner,
+    repo: githubRepo,
+    branch: resolvedBranch,
+  });
+
+  return data.commit.sha;
+}
+
 export const loadGitHubRepo = async (
   githubUrl: string,
   githubToken?: string,
+  branch?: string,
 ) => {
+  if (!githubUrl) {
+    throw new Error("githubUrl is required to load a repository");
+  }
+
   const repoUrl = githubUrl.endsWith(".git")
     ? githubUrl.slice(0, -4)
     : githubUrl;
   const loader = new GithubRepoLoader(repoUrl, {
     accessToken: githubToken ?? process.env.GITHUB_TOKEN,
-
-    branch: "main",
+    ...(branch ? { branch } : {}),
     ignoreFiles: [
       "**/node_modules/**",
       "**/.git/**",
@@ -109,10 +165,48 @@ export const indexGitHubRepo = async (
   projectId: string,
   githubUrl: string,
   githubToken?: string,
+  branch?: string,
 ) => {
-  const docs = await loadGitHubRepo(githubUrl, githubToken);
+  if (!projectId || !githubUrl) {
+    throw new Error(
+      "projectId and githubUrl are required to index a repository",
+    );
+  }
 
+  await db.sourceCodeEmbedding.deleteMany({ where: { projectId } });
+
+  let docs;
+  try {
+    docs = await loadGitHubRepo(githubUrl, githubToken, branch);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load repository";
+    await isFailed(projectId, message);
+    throw error;
+  }
+
+  if (docs.length === 0) {
+    await isFailed(projectId, "No indexable files found in this branch.");
+    throw new Error("No indexable files found in this branch.");
+  }
+
+  await isSummarizing(projectId);
   const allEmbeddings = await generateEmbeddings(docs);
+  if (allEmbeddings.length === 0) {
+    await isFailed(
+      projectId,
+      "Could not summarize any files. Check your API keys and try again.",
+    );
+    throw new Error("Could not summarize any files.");
+  }
+
+  await isEmbedding(projectId);
+
+  const commitSha = await getBranchHeadCommitSha(
+    githubUrl,
+    githubToken,
+    branch,
+  );
 
   await Promise.allSettled(
     allEmbeddings.map(async (embedding, index) => {
@@ -127,6 +221,8 @@ export const indexGitHubRepo = async (
             summary: embedding.summary ?? "",
             sourceCode: embedding.sourceCode,
             projectId: projectId,
+            blobSha: "",
+            commitSha,
           },
         });
 

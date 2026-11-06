@@ -1,28 +1,49 @@
-// api/webhook/stripe/route.ts
-
 import { db } from "@/server/db";
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { fulfillStripeCheckoutSession } from "@/lib/stripe-fulfillment";
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2026-01-28.clover",
 });
 
-// Force this route to be handled as a serverless function, not statically optimized
-export const dynamic = "force-dynamic";
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const result = await fulfillStripeCheckoutSession(session);
+
+  if (!result.ok) {
+    console.error("Stripe fulfillment failed:", session.id, result.reason);
+    return NextResponse.json({ error: result.reason }, { status: 400 });
+  }
+
+  return NextResponse.json({
+    message: result.alreadyFulfilled
+      ? "Checkout already fulfilled"
+      : "Credits added successfully",
+    credits: result.credits,
+  });
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
+  const signature =
+    request.headers.get("stripe-signature") ??
+    (await headers()).get("stripe-signature");
 
-  const signature = request.headers.get("Stripe-Signature");
+  if (!signature) {
+    return NextResponse.json(
+      { error: "Missing Stripe signature" },
+      { status: 400 },
+    );
+  }
 
   let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(
       body,
-      signature!,
+      signature,
       process.env.STRIPE_WEBHOOK_SECRET!,
     );
   } catch (error) {
@@ -33,43 +54,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const session = event.data.object as Stripe.Checkout.Session;
+  console.log("Stripe webhook event:", event.type);
 
-  console.log("event type", event.type);
-
-  if (event.type === "checkout.session.completed") {
-    console.log("Checkout session completed:", session);
-    const credits = Number(session.metadata?.credits);
-    const userId = session.client_reference_id!;
-
-    if (!userId || !credits) {
-      console.error("User ID not found in session");
-      return NextResponse.json(
-        { error: "User ID not found in session" },
-        { status: 400 },
-      );
-    }
-
-    await db.stripeTransaction.create({
-      data: {
-        userId,
-        credits,
-      },
-    });
-
-    await db.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        credits: {
-          increment: credits,
-        },
-      },
-    });
-
-    return NextResponse.json({ message: "Credits added successfully" });
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
+    const session = event.data.object as Stripe.Checkout.Session;
+    return handleCheckoutCompleted(session);
   }
 
-  return NextResponse.json({ message: "hello world" });
+  return NextResponse.json({ received: true });
 }

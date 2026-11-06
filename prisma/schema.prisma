@@ -22,19 +22,20 @@ model Post {
 }
 
 model User {
-    id                 String              @id @default(uuid())
-    email              String              @unique
-    name               String
-    firstName          String
-    lastName           String
-    credits            Int                 @default(150)
-    imageUrl           String
-    createdAt          DateTime            @default(now())
-    updatedAt          DateTime            @updatedAt
-    UserToProject      UserToProject[]
-    questionsAsked     Question[]
-    stripeTransactions StripeTransaction[]
-    paypalTransactions PaypalTransaction[]
+    id                  String              @id @default(uuid())
+    email               String              @unique
+    name                String
+    firstName           String
+    lastName            String
+    credits             Int                 @default(150)
+    imageUrl            String
+    createdAt           DateTime            @default(now())
+    updatedAt           DateTime            @updatedAt
+    UserToProject       UserToProject[]
+    questionsAsked      Question[]
+    stripeTransactions  StripeTransaction[]
+    creditLedgerEntries CreditLedgerEntry[]
+    paypalTransactions  PaypalTransaction[]
 
     @@index([email])
 }
@@ -43,6 +44,7 @@ model Project {
     id          String    @id @default(uuid())
     name        String    @unique
     githubUrl   String
+    branch      String?
     deletedAt   DateTime?
     githubToken String?
 
@@ -53,6 +55,7 @@ model Project {
     SourceCodeEmbedding SourceCodeEmbedding[]
     questions           Question[]
     meetings            Meeting[]
+    indexJob            IndexJob?
 
     @@index([name])
 }
@@ -151,24 +154,77 @@ model SourceCodeEmbedding {
 
     summaryEmbedding Unsupported("vector(768)")? // Adjust dimension as needed
     sourceCode       String
-
-    fileName String
+    blobSha          String // Git blob hash of the file content
+    commitSha        String // Commit SHA when this file was indexed
+    fileName         String
 
     summary   String
     projectId String
     project   Project @relation(fields: [projectId], references: [id])
+
+    @@unique([projectId, fileName])
+    @@index([projectId])
 }
 
 model StripeTransaction {
-    id        String   @id @default(uuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id              String   @id @default(uuid())
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+    stripeSessionId String?  @unique
 
     userId  String
     user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     credits Int
 }
 
+enum CreditLedgerKind {
+    PURCHASE
+    PROJECT_INDEX
+    REPO_SYNC
+}
+
+/// Append-only log of credit changes for billing history.
+model CreditLedgerEntry {
+    id              String           @id @default(uuid())
+    createdAt       DateTime         @default(now())
+    kind            CreditLedgerKind
+    amount          Int
+    balanceAfter    Int
+    title           String
+    detail          String?
+    projectId       String?
+    stripeSessionId String?
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId, createdAt(sort: Desc)])
+}
+
+enum IndexStatus {
+    QUEUED
+    SUMMARIZING
+    EMBEDDING
+    READY
+    FAILED
+}
+
+model IndexJob {
+    id        String  @id @default(cuid())
+    projectId String  @unique
+    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    status         IndexStatus @default(QUEUED)
+    totalFiles     Int         @default(0)
+    processedFiles Int         @default(0)
+
+    // Stores array of { fileName: string, stage: "SUMMARIZE" | "EMBED", error: string }
+    failedFiles  Json    @default("[]")
+    errorMessage String? // Fatal job-level error (e.g., invalid GitHub URL or rate limit)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
 
 enum PaypalTransactionStatus {
     CREATED
@@ -183,9 +239,9 @@ model PaypalTransaction {
     updatedAt DateTime @updatedAt
 
     userId        String
-    user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
     credits       Int
-    paypalOrderId String  @unique
+    paypalOrderId String                  @unique
     captureId     String?
-    status        PaypalTransactionStatus  @default(CREATED)
+    status        PaypalTransactionStatus @default(CREATED)
 }

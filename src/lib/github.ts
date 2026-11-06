@@ -3,10 +3,13 @@ import { db } from "@/server/db";
 import axios from "axios";
 import { Octokit } from "octokit";
 import { aiSummariseCommit } from "./gemini";
+import { isFailed, isReady, isSummarizing } from "@/utils/dbUtils/indexStatus";
 
-export const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
-});
+export function createOctokit(githubToken: string) {
+  return new Octokit({
+    auth: githubToken,
+  });
+}
 
 const githubUrl = "https://github.com/docker/genai-stack";
 
@@ -20,6 +23,8 @@ type Response = {
 
 export const getCommitHashes = async (
   githubUrl: string,
+  githubToken?: string,
+  branch?: string,
 ): Promise<Response[]> => {
   // Extract owner and repo from the GitHub URL
 
@@ -30,11 +35,12 @@ export const getCommitHashes = async (
     throw new Error("Invalid GitHub URL");
   }
 
+  const octokit = createOctokit(githubToken);
   const { data } = await octokit.rest.repos.listCommits({
     owner,
     repo,
-
     per_page: 100,
+    ...(branch ? { sha: branch } : {}),
   });
 
   const sortCommits = data.sort(
@@ -51,61 +57,93 @@ export const getCommitHashes = async (
   }));
 };
 
-export const pullCommits = async (projectId: string) => {
-  const { projects, githubUrl } = await fetchProjectGithubUrl(projectId);
+export const pullCommits = async (projectId: string, githubToken?: string) => {
+  const { githubUrl, branch } = await fetchProjectGithubUrl(projectId);
+  await isSummarizing(projectId);
+  try {
+    const commitHashes = await getCommitHashes(githubUrl, githubToken, branch);
 
-  const commitHashes = await getCommitHashes(githubUrl);
+    const { toCreate, toUpdate } = await commitsNeedingSummary(
+      commitHashes,
+      projectId,
+    );
+    const pending = [...toCreate, ...toUpdate];
 
-  const unprocessedCommits = await filterUnprocessedCommits(
-    commitHashes,
-    projectId,
-  );
+    const summaries = await Promise.all(
+      pending.map(async (commit) => {
+        try {
+          const summary = await summariseCommits(
+            githubUrl,
+            commit.commitHash,
+            githubToken,
+          );
+          return summary.trim();
+        } catch (error) {
+          console.error("Failed to summarise commit", commit.commitHash, error);
+          return "";
+        }
+      }),
+    );
 
-  const summaryResponses = await Promise.allSettled(
-    unprocessedCommits.map(async (commit) => {
-      const summary = await summariseCommits(githubUrl, commit.commitHash);
+    console.log("Summarised Commits:", summaries);
+    const creates = toCreate.flatMap((commit, index) => {
+      const summary = summaries[index] ?? "";
+      return [
+        {
+          projectId,
+          commitHash: commit.commitHash,
+          commitMessage: commit.commitMessage,
+          commitAuthorName: commit.commitAuthorName,
+          commitAuthorAvatar: commit.commitAuthorAvatar,
+          commitDate: commit.commitDate,
+          summary,
+        },
+      ];
+    });
 
-      return summary;
-      // Save the commit and its summary to the database
-    }),
-  );
-
-  const summarise = summaryResponses.map((response) => {
-    if (response.status === "fulfilled") {
-      return response.value;
+    if (creates.length > 0) {
+      await db.commit.createMany({ data: creates });
     }
-    return "";
-  });
 
-  console.log("Summarised Commits:", summarise);
+    await Promise.all(
+      toUpdate.map(async (commit, index) => {
+        const summary = summaries[toCreate.length + index] ?? "";
+        if (!summary) {
+          return;
+        }
+        await db.commit.update({
+          where: { id: commit.id },
+          data: { summary },
+        });
+      }),
+    );
 
-  const commit = await db.commit.createMany({
-    data: summarise.map((summary, index) => {
-      return {
-        projectId: projectId,
-        commitHash: unprocessedCommits[index]!.commitHash,
-        commitMessage: unprocessedCommits[index]!.commitMessage,
-        commitAuthorName: unprocessedCommits[index]!.commitAuthorName,
-        commitAuthorAvatar: unprocessedCommits[index]!.commitAuthorAvatar,
-        commitDate: unprocessedCommits[index]!.commitDate,
-
-        summary: summary,
-      };
-    }),
-  });
-
-  console.log("Unprocessed Commits:", unprocessedCommits);
+    console.log("Unprocessed Commits:", pending);
+    await isReady(projectId);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to index commits";
+    await isFailed(projectId, message);
+    throw error;
+  }
 };
 
-async function summariseCommits(githubUrl: string, commitHash: string) {
+async function summariseCommits(
+  githubUrl: string,
+  commitHash: string,
+  githubToken?: string,
+) {
   const { data } = await axios.get(`${githubUrl}/commit/${commitHash}.diff`, {
     headers: {
       Accept: "application/vnd.github.v3.diff",
+      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
     },
     responseType: "text",
   });
 
-  return await aiSummariseCommit(String(data));
+  const diff = String(data);
+  const clipped = diff.length > 20000 ? diff.slice(0, 20000) : diff;
+  return (await aiSummariseCommit(clipped)) ?? "";
 }
 
 export const fetchProjectGithubUrl = async (projectId: string) => {
@@ -115,12 +153,17 @@ export const fetchProjectGithubUrl = async (projectId: string) => {
     where: { id: projectId },
     select: {
       githubUrl: true,
+      branch: true,
     },
   });
-  return { projects: project, githubUrl: project?.githubUrl ?? "" };
+  return {
+    projects: project,
+    githubUrl: project?.githubUrl ?? "",
+    branch: project?.branch ?? undefined,
+  };
 };
 
-async function filterUnprocessedCommits(
+async function commitsNeedingSummary(
   commitHashes: Response[],
   projectId: string,
 ) {
@@ -132,17 +175,31 @@ async function filterUnprocessedCommits(
       },
     },
     select: {
+      id: true,
       commitHash: true,
+      summary: true,
     },
   });
 
-  const existingCommitHashes = new Set(
-    existingCommits.map((commit) => commit.commitHash),
+  const existingByHash = new Map(
+    existingCommits.map((commit) => [commit.commitHash, commit]),
   );
 
-  return commitHashes.filter(
-    (commit) => !existingCommitHashes.has(commit.commitHash),
-  );
+  const toCreate: Response[] = [];
+  const toUpdate: Array<Response & { id: number }> = [];
+
+  for (const commit of commitHashes) {
+    const existing = existingByHash.get(commit.commitHash);
+    if (!existing) {
+      toCreate.push(commit);
+      continue;
+    }
+    if (!existing.summary.trim()) {
+      toUpdate.push({ ...commit, id: existing.id });
+    }
+  }
+
+  return { toCreate, toUpdate };
 }
 
 // Example usage

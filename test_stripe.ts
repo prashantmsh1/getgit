@@ -1,8 +1,9 @@
-import 'dotenv/config';
-import Stripe from 'stripe';
+import "dotenv/config";
+import Stripe from "stripe";
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY?.trim() || "";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16" as any,

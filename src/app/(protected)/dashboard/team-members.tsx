@@ -26,7 +26,7 @@ const TeamMembers = () => {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="mr-1 flex items-center -space-x-2">
       {members.map((member) => (
         <div
           key={member.user.id}
@@ -38,12 +38,12 @@ const TeamMembers = () => {
               alt={member.user.name}
               width={32}
               height={32}
-              className="h-8 w-8 rounded-full border-2 border-white shadow-sm transition-transform group-hover:scale-110"
+              className="ring-card h-8 w-8 rounded-full object-cover ring-2 transition-transform group-hover:z-10 group-hover:scale-105"
               title={member.user.name}
             />
           ) : (
             <div
-              className="bg-primary flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-xs font-semibold text-white shadow-sm transition-transform group-hover:scale-110"
+              className="bg-primary text-primary-foreground ring-card flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ring-2 transition-transform group-hover:z-10 group-hover:scale-105"
               title={member.user.name}
             >
               {member.user.firstName?.charAt(0) ||
@@ -52,7 +52,7 @@ const TeamMembers = () => {
             </div>
           )}
 
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 scale-0 rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+          <div className="bg-foreground text-background pointer-events-none absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2 scale-95 rounded-md px-2 py-1 text-xs whitespace-nowrap opacity-0 shadow-sm transition-all group-hover:scale-100 group-hover:opacity-100">
             {member.user.name}
           </div>
         </div>

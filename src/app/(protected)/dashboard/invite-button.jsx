@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Copy, UserPlus } from "lucide-react";
 
 const InviteButton = () => {
   const { project } = useProjects();
@@ -18,31 +19,41 @@ const InviteButton = () => {
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite Team Members</DialogTitle>
+            <DialogTitle>Invite teammates</DialogTitle>
           </DialogHeader>
 
-          <p className="text-sm text-gray-500">
-            Ask them to copy and paste this link.
+          <p className="text-muted-foreground text-sm">
+            Share this link. Anyone with access can join the project.
           </p>
 
-          <Input
-            readOnly
-            className="mt-4"
-            onClick={() => {
-              navigator.clipboard.writeText(
-                `${window.location.origin}/join/${project?.id}`,
-              );
-              toast.success("Copied to clipboard");
-            }}
-            value={`${window.location.origin}/join/${project?.id}`}
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              readOnly
+              className="font-mono text-xs"
+              value={`${window.location.origin}/join/${project?.id}`}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/join/${project?.id}`,
+                );
+                toast.success("Invite link copied");
+              }}
+            >
+              <Copy className="h-4 w-4" />
+              Copy
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
-      <Button size="sm" onClick={() => setOpen(true)}>
-        Invite Members
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <UserPlus className="h-3.5 w-3.5" />
+        Invite
       </Button>
     </>
   );

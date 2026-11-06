@@ -96,38 +96,41 @@ const MeetingCard = () => {
   });
 
   return (
-    <Card className="col-span-5 md:col-span-2">
+    <Card className="border-border/70 h-full gap-0 py-0 shadow-sm lg:col-span-2">
       {!isUploading && (
-        <div className="flex flex-col items-center justify-center">
-          <Presentation className="mx-auto h-20 w-20" />
-
-          <div className="flex flex-col items-center justify-center px-4">
-            <p className="font-medium text-gray-800">Create a New Meeting</p>
-            <p className="text-center text-sm font-medium text-gray-500">
-              Analyze your meeting with getgit Powered by AI
-            </p>
+        <div
+          {...getRootProps()}
+          className="hover:bg-primary/5 flex h-full min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl px-6 py-8 text-center transition-colors"
+        >
+          <input {...getInputProps()} />
+          <div className="bg-primary/10 mb-4 flex h-11 w-11 items-center justify-center rounded-xl">
+            <Presentation className="text-primary h-5 w-5" />
           </div>
-          <div className="cursor-pointer p-4">
-            <Button {...getRootProps()}>
-              {" "}
-              <Upload />
-              Upload
-            </Button>
-            <input {...getInputProps()} />
-          </div>
+          <p className="text-sm font-semibold">Upload a meeting</p>
+          <p className="text-muted-foreground mt-1 max-w-[16rem] text-sm">
+            Drop an audio file and GetGit will pull out issues from the call.
+          </p>
+          <Button type="button" variant="secondary" size="sm" className="mt-5">
+            <Upload className="h-3.5 w-3.5" />
+            Choose file
+          </Button>
+          <p className="text-muted-foreground mt-3 text-xs">MP3, WAV, AAC, or M4A · 50MB</p>
         </div>
       )}
 
       {isUploading && (
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex h-full flex-col items-center justify-center gap-4 px-6 py-10">
           <CircularProgressbar
             value={progress}
             text={`${progress}%`}
-            className="size-20"
+            className="size-16"
           />
-          <p className="text-center text-sm font-medium text-gray-500">
-            Uploading your meeting...
-          </p>
+          <div className="text-center">
+            <p className="text-sm font-medium">Uploading meeting</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              This stays on the page until the file finishes.
+            </p>
+          </div>
         </div>
       )}
     </Card>
