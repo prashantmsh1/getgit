@@ -11,6 +11,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function createCheckoutSession(credits: number) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Stripe checkout is not available.");
+  }
+
   const { userId } = await auth();
   if (!userId) throw new Error("User not found");
   let sessionUrl: string;
@@ -55,7 +59,10 @@ export async function fulfillCheckoutSessionFromRedirect(sessionId: string) {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
 
   if (session.client_reference_id !== userId) {
-    return { ok: false as const, reason: "This payment belongs to another account." };
+    return {
+      ok: false as const,
+      reason: "This payment belongs to another account.",
+    };
   }
 
   return fulfillStripeCheckoutSession(session);

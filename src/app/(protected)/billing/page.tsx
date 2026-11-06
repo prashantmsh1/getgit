@@ -36,6 +36,8 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
+const paypalOnly = process.env.NODE_ENV === "production";
+
 function formatBillingDate(iso: Date | string) {
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
@@ -70,7 +72,7 @@ const BillingPageContent = () => {
   const [loading, setLoading] = useState(false);
   const [fulfillingPayment, setFulfillingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paypal">(
-    "stripe",
+    paypalOnly ? "paypal" : "stripe",
   );
   const creditsToBuyAmount = creditsToBuy[0]!;
   const searchParams = useSearchParams();
@@ -119,7 +121,7 @@ const BillingPageContent = () => {
   const handleBuy = async () => {
     setLoading(true);
     try {
-      if (paymentMethod === "stripe") {
+      if (!paypalOnly && paymentMethod === "stripe") {
         await createCheckoutSession(creditsToBuyAmount);
         return;
       }
@@ -241,7 +243,9 @@ const BillingPageContent = () => {
         <CardHeader>
           <CardTitle className="text-lg">Buy credits</CardTitle>
           <CardDescription>
-            Drag to choose an amount. Complete checkout with Stripe or PayPal.
+            {paypalOnly
+              ? "Drag to choose an amount. Complete checkout with PayPal."
+              : "Drag to choose an amount. Complete checkout with Stripe or PayPal."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
@@ -276,40 +280,42 @@ const BillingPageContent = () => {
               Payment method
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("stripe")}
-                className={`flex flex-1 items-center gap-3 rounded-lg border-2 px-4 py-3 transition-all ${
-                  paymentMethod === "stripe"
-                    ? "border-blue-600 bg-blue-50 shadow-sm dark:border-blue-500 dark:bg-blue-900/20"
-                    : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
-                }`}
-              >
-                <CreditCard
-                  className={`h-5 w-5 ${
+              {!paypalOnly && (
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("stripe")}
+                  className={`flex flex-1 items-center gap-3 rounded-lg border-2 px-4 py-3 transition-all ${
                     paymentMethod === "stripe"
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-400 dark:text-gray-500"
+                      ? "border-blue-600 bg-blue-50 shadow-sm dark:border-blue-500 dark:bg-blue-900/20"
+                      : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
                   }`}
-                />
-                <div className="flex flex-col items-start gap-0.5">
-                  <span
-                    className={`text-sm font-semibold ${
+                >
+                  <CreditCard
+                    className={`h-5 w-5 ${
                       paymentMethod === "stripe"
-                        ? "text-blue-700 dark:text-blue-300"
-                        : "text-gray-700 dark:text-gray-300"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-400 dark:text-gray-500"
                     }`}
-                  >
-                    Stripe
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Credit or debit card
-                  </span>
-                </div>
-                {paymentMethod === "stripe" && (
-                  <div className="ml-auto h-3 w-3 rounded-full bg-blue-600 dark:bg-blue-400" />
-                )}
-              </button>
+                  />
+                  <div className="flex flex-col items-start gap-0.5">
+                    <span
+                      className={`text-sm font-semibold ${
+                        paymentMethod === "stripe"
+                          ? "text-blue-700 dark:text-blue-300"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      Stripe
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Credit or debit card
+                    </span>
+                  </div>
+                  {paymentMethod === "stripe" && (
+                    <div className="ml-auto h-3 w-3 rounded-full bg-blue-600 dark:bg-blue-400" />
+                  )}
+                </button>
+              )}
 
               <button
                 type="button"
