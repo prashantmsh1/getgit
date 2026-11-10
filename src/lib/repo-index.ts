@@ -1,6 +1,6 @@
 import { indexGitHubRepo } from "@/lib/github-loader";
 import { pullCommits } from "./github";
-import { isFailed } from "@/utils/dbUtils/indexStatus";
+import { isFailed, isReady } from "@/utils/dbUtils/indexStatus";
 
 export const indexRepository = async (
   projectId: string,
@@ -10,7 +10,17 @@ export const indexRepository = async (
 ) => {
   try {
     await indexGitHubRepo(projectId, githubUrl, githubToken, branch);
-    await pullCommits(projectId, githubToken);
+
+    try {
+      await pullCommits(projectId, githubToken);
+    } catch (commitError) {
+      console.warn(
+        "Commits could not be pulled during indexing (repository code is indexed):",
+        commitError instanceof Error ? commitError.message : commitError,
+      );
+      // Ensure the project transitions to READY since code files are successfully indexed
+      await isReady(projectId);
+    }
   } catch (error) {
     console.error("Project indexing failed:", projectId, error);
     const message =

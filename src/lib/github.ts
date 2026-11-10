@@ -57,6 +57,21 @@ export const getCommitHashes = async (
   }));
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getErrorStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  if ("status" in error && typeof (error as { status: unknown }).status === "number") {
+    return (error as { status: number }).status;
+  }
+  if (axios.isAxiosError(error)) {
+    return error.response?.status;
+  }
+  return undefined;
+}
+
 export const pullCommits = async (projectId: string, githubToken?: string) => {
   const { githubUrl, branch } = await fetchProjectGithubUrl(projectId);
   await isSummarizing(projectId);
@@ -69,21 +84,44 @@ export const pullCommits = async (projectId: string, githubToken?: string) => {
     );
     const pending = [...toCreate, ...toUpdate];
 
-    const summaries = await Promise.all(
-      pending.map(async (commit) => {
-        try {
-          const summary = await summariseCommits(
-            githubUrl,
-            commit.commitHash,
-            githubToken,
+    const summaries: string[] = [];
+    let rateLimited = false;
+
+    // Process sequentially with a delay to prevent secondary rate limiting
+    for (const [index, commit] of pending.entries()) {
+      if (rateLimited) {
+        summaries.push("");
+        continue;
+      }
+
+      if (index > 0) {
+        await sleep(500);
+      }
+
+      try {
+        const summary = await summariseCommits(
+          githubUrl,
+          commit.commitHash,
+          githubToken,
+        );
+        summaries.push(summary.trim());
+      } catch (error) {
+        const status = getErrorStatus(error);
+        const errMsg = error instanceof Error ? error.message : "Failed to summarize";
+        console.error(
+          "Failed to summarise commit",
+          commit.commitHash,
+          status ? `status: ${status}` : errMsg,
+        );
+        if (status === 429 || status === 403) {
+          rateLimited = true;
+          console.warn(
+            "GitHub rate limit hit while summarizing commits. Remaining commits will be saved without summaries and can be backfilled later.",
           );
-          return summary.trim();
-        } catch (error) {
-          console.error("Failed to summarise commit", commit.commitHash, error);
-          return "";
         }
-      }),
-    );
+        summaries.push("");
+      }
+    }
 
     console.log("Summarised Commits:", summaries);
     const creates = toCreate.flatMap((commit, index) => {
@@ -128,22 +166,101 @@ export const pullCommits = async (projectId: string, githubToken?: string) => {
   }
 };
 
+const STORED_COMMIT_BATCH = 3;
+
+function githubRepoFromUrl(githubUrl: string) {
+  const [owner, repo] = githubUrl.split("/").slice(-2);
+  if (!owner || !repo) {
+    throw new Error("Invalid GitHub URL");
+  }
+  return { owner, repo: repo.replace(/\.git$/, "") };
+}
+
+async function fetchCommitDiff(
+  githubUrl: string,
+  commitHash: string,
+  githubToken?: string,
+) {
+  const { owner, repo } = githubRepoFromUrl(githubUrl);
+  const octokit = createOctokit(githubToken);
+  const response = await octokit.request(
+    "GET /repos/{owner}/{repo}/commits/{ref}",
+    {
+      owner,
+      repo,
+      ref: commitHash,
+      headers: {
+        accept: "application/vnd.github.diff",
+      },
+    },
+  );
+  return typeof response.data === "string"
+    ? response.data
+    : String(response.data ?? "");
+}
+
 async function summariseCommits(
   githubUrl: string,
   commitHash: string,
   githubToken?: string,
 ) {
-  const { data } = await axios.get(`${githubUrl}/commit/${commitHash}.diff`, {
-    headers: {
-      Accept: "application/vnd.github.v3.diff",
-      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-    },
-    responseType: "text",
-  });
-
-  const diff = String(data);
+  const diff = await fetchCommitDiff(githubUrl, commitHash, githubToken);
   const clipped = diff.length > 20000 ? diff.slice(0, 20000) : diff;
   return (await aiSummariseCommit(clipped)) ?? "";
+}
+
+export async function summariseStoredCommits(
+  projectId: string,
+  githubToken?: string,
+) {
+  const { githubUrl } = await fetchProjectGithubUrl(projectId);
+  const commits = await db.commit.findMany({
+    where: { projectId },
+    select: { id: true, commitHash: true, summary: true },
+    orderBy: { commitDate: "desc" },
+  });
+  const blank = commits.filter((commit) => !commit.summary.trim());
+  const batch = blank.slice(0, STORED_COMMIT_BATCH);
+
+  let summarised = 0;
+  let rateLimited = false;
+
+  for (const [index, commit] of batch.entries()) {
+    if (index > 0) {
+      await sleep(750);
+    }
+    try {
+      const summary = (
+        await summariseCommits(githubUrl, commit.commitHash, githubToken)
+      ).trim();
+      if (!summary) {
+        continue;
+      }
+      await db.commit.update({
+        where: { id: commit.id },
+        data: { summary },
+      });
+      summarised += 1;
+    } catch (error) {
+      const status = getErrorStatus(error);
+      const errMsg = error instanceof Error ? error.message : "Failed to summarize";
+      console.error(
+        "Failed to summarise stored commit",
+        commit.commitHash,
+        status ? `status: ${status}` : errMsg,
+      );
+      if (status === 429 || status === 403) {
+        rateLimited = true;
+        break;
+      }
+    }
+  }
+
+  return {
+    summarised,
+    remaining: blank.length - summarised,
+    rateLimited,
+  };
 }
 
 export const fetchProjectGithubUrl = async (projectId: string) => {

@@ -1,6 +1,6 @@
 import z from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { pullCommits } from "@/lib/github";
+import { pullCommits, summariseStoredCommits } from "@/lib/github";
 import { resolveGithubToken } from "@/lib/github-token";
 
 import { checkCredits } from "@/lib/github-loader";
@@ -156,6 +156,31 @@ export const projectRouter = createTRPCRouter({
         },
       });
       return commits;
+    }),
+
+  summariseMissingCommits: protectedProcedure
+    .input(z.object({ projectId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const project = await ctx.db.project.findFirst({
+        where: {
+          id: input.projectId,
+          UserToProject: {
+            some: { userId: ctx.user.userId },
+          },
+        },
+        select: { githubToken: true },
+      });
+      if (!project) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
+      }
+      const githubToken = await resolveGithubToken(
+        ctx.user.userId,
+        project.githubToken,
+      );
+      return summariseStoredCommits(input.projectId, githubToken);
     }),
 
   saveAnswer: protectedProcedure
