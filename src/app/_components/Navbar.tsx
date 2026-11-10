@@ -15,7 +15,7 @@ export const Navbar = () => {
             getgit
           </span>
         </Link>
-        <div className="dark:text-deep-space-blue-900/70 hidden items-center gap-8 text-sm font-medium text-gray-600 md:flex">
+        <div className="hidden items-center gap-8 text-sm font-medium text-gray-600 md:flex dark:text-gray-300">
           <Link
             href="#features"
             className="transition-colors hover:text-gray-900 dark:hover:text-white"

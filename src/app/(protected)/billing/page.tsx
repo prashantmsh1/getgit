@@ -286,33 +286,33 @@ const BillingPageContent = () => {
                   onClick={() => setPaymentMethod("stripe")}
                   className={`flex flex-1 items-center gap-3 rounded-lg border-2 px-4 py-3 transition-all ${
                     paymentMethod === "stripe"
-                      ? "border-blue-600 bg-blue-50 shadow-sm dark:border-blue-500 dark:bg-blue-900/20"
-                      : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                      ? "border-primary bg-primary/10 shadow-xs"
+                      : "border-border bg-card hover:border-border/80 hover:bg-accent/40"
                   }`}
                 >
                   <CreditCard
                     className={`h-5 w-5 ${
                       paymentMethod === "stripe"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-400 dark:text-gray-500"
+                        ? "text-primary"
+                        : "text-muted-foreground"
                     }`}
                   />
                   <div className="flex flex-col items-start gap-0.5">
                     <span
                       className={`text-sm font-semibold ${
                         paymentMethod === "stripe"
-                          ? "text-blue-700 dark:text-blue-300"
-                          : "text-gray-700 dark:text-gray-300"
+                          ? "text-primary"
+                          : "text-foreground"
                       }`}
                     >
                       Stripe
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-muted-foreground text-xs">
                       Credit or debit card
                     </span>
                   </div>
                   {paymentMethod === "stripe" && (
-                    <div className="ml-auto h-3 w-3 rounded-full bg-blue-600 dark:bg-blue-400" />
+                    <div className="bg-primary ml-auto h-3 w-3 rounded-full" />
                   )}
                 </button>
               )}
@@ -322,15 +322,15 @@ const BillingPageContent = () => {
                 onClick={() => setPaymentMethod("paypal")}
                 className={`flex flex-1 items-center gap-3 rounded-lg border-2 px-4 py-3 transition-all ${
                   paymentMethod === "paypal"
-                    ? "border-blue-600 bg-blue-50 shadow-sm dark:border-blue-500 dark:bg-blue-900/20"
-                    : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                    ? "border-primary bg-primary/10 shadow-xs"
+                    : "border-border bg-card hover:border-border/80 hover:bg-accent/40"
                 }`}
               >
                 <svg
                   className={`h-5 w-5 ${
                     paymentMethod === "paypal"
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-400 dark:text-gray-500"
+                      ? "text-primary"
+                      : "text-muted-foreground"
                   }`}
                   viewBox="0 0 24 24"
                   fill="currentColor"
@@ -342,18 +342,18 @@ const BillingPageContent = () => {
                   <span
                     className={`text-sm font-semibold ${
                       paymentMethod === "paypal"
-                        ? "text-blue-700 dark:text-blue-300"
-                        : "text-gray-700 dark:text-gray-300"
+                        ? "text-primary"
+                        : "text-foreground"
                     }`}
                   >
                     PayPal
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-muted-foreground text-xs">
                     Card or PayPal balance
                   </span>
                 </div>
                 {paymentMethod === "paypal" && (
-                  <div className="ml-auto h-3 w-3 rounded-full bg-blue-600 dark:bg-blue-400" />
+                  <div className="bg-primary ml-auto h-3 w-3 rounded-full" />
                 )}
               </button>
             </div>
@@ -477,7 +477,7 @@ const BillingPageContent = () => {
 
 const BillingPage = () => (
   <Suspense
-    fallback={<div className="p-8 text-sm text-gray-500">Loading billing…</div>}
+    fallback={<div className="text-muted-foreground p-8 text-sm">Loading billing…</div>}
   >
     <BillingPageContent />
   </Suspense>

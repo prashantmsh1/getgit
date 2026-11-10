@@ -21,72 +21,40 @@ const SyncUser = async () => {
     imageUrl: user.imageUrl,
   };
 
-  await db.$transaction(async (tx) => {
-    const byId = await tx.user.findUnique({ where: { id: userId } });
-    if (byId) {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          ...profile,
-          ...(email ? { email } : {}),
-        },
-      });
-      return;
-    }
-
-    const byEmail = email
-      ? await tx.user.findUnique({ where: { email } })
-      : null;
-
-    if (!byEmail) {
-      await tx.user.create({
-        data: {
-          id: userId,
-          email,
-          ...profile,
-        },
-      });
-      return;
-    }
-
-    const oldId = byEmail.id;
-
-    await tx.user.create({
+  const byId = await db.user.findUnique({ where: { id: userId } });
+  if (byId) {
+    await db.user.update({
+      where: { id: userId },
       data: {
-        id: userId,
-        email: `pending:${userId}`,
         ...profile,
-        credits: byEmail.credits,
-        createdAt: byEmail.createdAt,
+        ...(email ? { email } : {}),
       },
     });
+    return redirect("/dashboard");
+  }
 
-    await tx.userToProject.updateMany({
-      where: { userId: oldId },
-      data: { userId },
-    });
-    await tx.question.updateMany({
-      where: { userId: oldId },
-      data: { userId },
-    });
-    await tx.stripeTransaction.updateMany({
-      where: { userId: oldId },
-      data: { userId },
-    });
-    await tx.creditLedgerEntry.updateMany({
-      where: { userId: oldId },
-      data: { userId },
-    });
-    await tx.paypalTransaction.updateMany({
-      where: { userId: oldId },
-      data: { userId },
-    });
+  const byEmail = email
+    ? await db.user.findUnique({ where: { email } })
+    : null;
 
-    await tx.user.delete({ where: { id: oldId } });
-    await tx.user.update({
-      where: { id: userId },
-      data: { email },
+  if (!byEmail) {
+    await db.user.create({
+      data: {
+        id: userId,
+        email,
+        ...profile,
+      },
     });
+    return redirect("/dashboard");
+  }
+
+  // Related rows follow this id through ON UPDATE CASCADE.
+  await db.user.update({
+    where: { id: byEmail.id },
+    data: {
+      id: userId,
+      ...profile,
+    },
   });
 
   return redirect("/dashboard");

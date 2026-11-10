@@ -5,7 +5,7 @@ import { Octokit } from "octokit";
 import { aiSummariseCommit } from "./gemini";
 import { isFailed, isReady, isSummarizing } from "@/utils/dbUtils/indexStatus";
 
-export function createOctokit(githubToken: string) {
+export function createOctokit(githubToken?: string) {
   return new Octokit({
     auth: githubToken,
   });

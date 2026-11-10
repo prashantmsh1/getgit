@@ -19,6 +19,7 @@ import { api } from "@/trpc/react";
 import useRefetch from "@/hooks/use-refetch";
 import { toast } from "sonner";
 import { useProjectIndexReady } from "@/components/project-index-status";
+import { useTheme } from "next-themes";
 import {
   GitBranch,
   Loader2,
@@ -39,6 +40,7 @@ interface FileReferences {
 }
 
 const AskQuestion = ({ className }: AskQuestionProps) => {
+  const { resolvedTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState("");
@@ -142,7 +144,10 @@ const AskQuestion = ({ className }: AskQuestionProps) => {
                   GetGit AI is thinking...
                 </span>
               </div>
-              <div className="px-1" data-color-mode="light">
+              <div
+                className="px-1"
+                data-color-mode={resolvedTheme === "dark" ? "dark" : "light"}
+              >
                 <MDEditor.Markdown
                   source={
                     answer || (loading ? "Analyzing your codebase..." : "")

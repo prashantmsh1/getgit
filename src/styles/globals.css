@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans:
@@ -143,7 +143,7 @@
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.546 0.245 262.881);
-  --primary-foreground: oklch(0.379 0.146 265.522);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.274 0.006 286.033);
@@ -162,7 +162,7 @@
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.379 0.146 265.522);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
@@ -170,21 +170,39 @@
 }
 
 .wmde-markdown {
-  background-color: white !important;
-  color: black !important;
+  background-color: transparent !important;
+  color: inherit !important;
 }
 
 .wmde-markdown::-webkit-scrollbar {
-  background-color: white !important;
+  background-color: transparent !important;
 }
+
 .wmde-markdown h1,
 .wmde-markdown h2,
 .wmde-markdown h3,
-.wmde-markdown p {
-  color: black !important;
+.wmde-markdown h4,
+.wmde-markdown h5,
+.wmde-markdown h6,
+.wmde-markdown p,
+.wmde-markdown span,
+.wmde-markdown li,
+.wmde-markdown strong {
+  color: inherit !important;
 }
+
 .wmde-markdown code {
-  border: 2px solid #e2e8f0 !important;
-  background-color: #fffefe !important;
-  color: #333 !important;
+  border: 1px solid var(--border) !important;
+  background-color: var(--muted) !important;
+  color: inherit !important;
+}
+
+.dark .wmde-markdown {
+  background-color: transparent !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .wmde-markdown pre {
+  background-color: #0d1117 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }

@@ -195,9 +195,9 @@ export function useProjectIndexReady(projectId: string | undefined) {
     status !== "FAILED";
 
   return {
-    status,
     isIndexing,
     isReady,
     ...statusQuery,
+    status,
   };
 }

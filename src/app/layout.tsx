@@ -4,12 +4,13 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "@/trpc/react";
-import { ClerkProvider } from "@clerk/nextjs";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ClerkThemeProvider } from "@/components/clerk-theme-provider";
 
-export const  metadata: Metadata = {
+export const metadata: Metadata = {
   title: "GetGit",
-  description: "Analyze the git repo with Ai",
+  description: "Analyze the git repo with AI",
 };
 
 const geist = Geist({
@@ -17,26 +18,24 @@ const geist = Geist({
   variable: "--font-geist-sans",
 });
 
-import { ThemeProvider } from "@/components/theme-provider";
-
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
-        <body suppressHydrationWarning>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-            disableTransitionOnChange
-          >
+    <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ClerkThemeProvider>
             <TRPCReactProvider>{children}</TRPCReactProvider>
             <Toaster />
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+          </ClerkThemeProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

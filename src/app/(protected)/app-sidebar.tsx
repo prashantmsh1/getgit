@@ -78,7 +78,7 @@ export function AppSidebar() {
                     href={item.url}
                     className={cn(
                       {
-                        "bg-primary text-white": pathname === item.url,
+                        "bg-primary text-primary-foreground": pathname === item.url,
                       },
                       "",
                     )}
@@ -103,14 +103,16 @@ export function AppSidebar() {
                     onClick={() => setProjectId(project.id)}
                     href={"dashboard?projectId=" + project.id}
                     className={cn({
-                      "bg-primary p-0 text-white": pathname === project.name,
+                      "bg-primary p-0 text-primary-foreground":
+                        pathname === project.name,
                     })}
                   >
                     <span
                       className={cn(
-                        "inline-flex h-5 w-5 items-center justify-center rounded bg-gray-300 font-semibold text-gray-800",
+                        "inline-flex h-5 w-5 items-center justify-center rounded bg-muted text-xs font-semibold text-muted-foreground",
                         {
-                          "bg-blue-700 text-gray-50": projectId === project.id,
+                          "bg-primary text-primary-foreground":
+                            projectId === project.id,
                         },
                       )}
                     >

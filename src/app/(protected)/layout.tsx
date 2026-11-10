@@ -5,6 +5,7 @@ import { AppSidebar } from "./app-sidebar";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/server/db";
 import { redirect } from "next/navigation";
+import { ModeToggle } from "@/components/mode-toggle";
 
 type Props = {
   children: React.ReactNode;
@@ -21,16 +22,19 @@ const Layout = async ({ children }: Props) => {
   }
 
   return (
-    <div className="">
+    <div className="min-h-svh bg-background text-foreground">
       <SidebarProvider className="flex">
         <AppSidebar />
 
         <main className="flex min-h-svh min-w-0 flex-1 flex-col p-2">
-          <div className="border-sidebar-border flex w-full items-center justify-between rounded-xl border bg-white px-3 py-2 shadow-sm">
+          <div className="border-sidebar-border bg-card/95 flex w-full items-center justify-between rounded-xl border px-3 py-2 shadow-xs backdrop-blur-sm">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
             </div>
-            <UserButton />
+            <div className="flex items-center gap-3">
+              <ModeToggle />
+              <UserButton />
+            </div>
           </div>
           <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-1">{children}</div>
         </main>

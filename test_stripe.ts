@@ -33,8 +33,8 @@ async function test() {
       metadata: { credits: 100 },
     });
     console.log("Success:", session.url);
-  } catch (error) {
-    console.error("Stripe API Error:", error.message);
+  } catch (error: any) {
+    console.error("Stripe API Error:", error?.message);
   }
 }
 test();

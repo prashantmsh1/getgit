@@ -21,7 +21,7 @@ export const Features = () => {
               master a codebase
             </span>
           </h2>
-          <p className="dark:text-deep-space-blue-800 mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-600 transition-colors">
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-600 transition-colors dark:text-gray-300">
             Whether you are onboarding to a new team, reviewing a massive PR, or
             just trying to understand an open-source library, GetGit has your
             back.
@@ -42,7 +42,7 @@ export const Features = () => {
                 <h3 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
                   AI Code Q&A
                 </h3>
-                <p className="dark:text-deep-space-blue-800 max-w-md text-lg leading-relaxed text-gray-600">
+                <p className="max-w-md text-lg leading-relaxed text-gray-600 dark:text-gray-300">
                   Ask natural language questions about your codebase. GetGit
                   understands the context and provides accurate answers with
                   exact file references.
@@ -63,7 +63,7 @@ export const Features = () => {
                 <h3 className="mb-2 text-xl font-bold text-gray-900 dark:text-white">
                   Instant Summaries
                 </h3>
-                <p className="dark:text-deep-space-blue-800 text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Get a high-level overview of any repository&apos;s
                   architecture and purpose in seconds.
                 </p>
@@ -84,7 +84,7 @@ export const Features = () => {
                 <h3 className="mb-2 text-xl font-bold text-gray-900 dark:text-white">
                   Commit Flow
                 </h3>
-                <p className="dark:text-deep-space-blue-800 text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Understand how features evolved. Analyze commit histories
                   automatically.
                 </p>
@@ -105,7 +105,7 @@ export const Features = () => {
                 <h3 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
                   Blazing Fast Indexing
                 </h3>
-                <p className="dark:text-deep-space-blue-800 max-w-md text-lg leading-relaxed text-gray-600">
+                <p className="max-w-md text-lg leading-relaxed text-gray-600 dark:text-gray-300">
                   We use advanced vector embeddings to index your codebase
                   rapidly, so you spend less time waiting and more time coding.
                 </p>

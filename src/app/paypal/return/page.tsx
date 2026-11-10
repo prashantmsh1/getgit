@@ -54,11 +54,11 @@ const PayPalReturnContent = () => {
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8">
       {status === "processing" && (
         <>
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <div className="border-muted border-t-primary h-10 w-10 animate-spin rounded-full border-4" />
+          <h2 className="text-foreground text-xl font-semibold">
             Processing your payment...
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-muted-foreground text-sm">
             Please wait while we confirm your PayPal payment.
           </p>
         </>
@@ -66,9 +66,9 @@ const PayPalReturnContent = () => {
 
       {status === "success" && (
         <>
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
             <svg
-              className="h-8 w-8 text-green-600 dark:text-green-400"
+              className="h-8 w-8 text-emerald-600 dark:text-emerald-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -81,10 +81,10 @@ const PayPalReturnContent = () => {
               />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-foreground text-xl font-semibold">
             Payment Successful!
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-muted-foreground text-sm">
             {credits} credits have been added to your account. Redirecting...
           </p>
         </>
@@ -92,9 +92,9 @@ const PayPalReturnContent = () => {
 
       {status === "error" && (
         <>
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
             <svg
-              className="h-8 w-8 text-red-600 dark:text-red-400"
+              className="text-destructive h-8 w-8"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -107,15 +107,15 @@ const PayPalReturnContent = () => {
               />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-foreground text-xl font-semibold">
             Payment Failed
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-muted-foreground text-sm">
             Something went wrong with your payment. Please try again.
           </p>
           <button
             onClick={() => router.push("/billing")}
-            className="mt-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
           >
             Back to Billing
           </button>
@@ -130,8 +130,8 @@ const PayPalReturnPage = () => {
     <Suspense
       fallback={
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <div className="border-muted border-t-primary h-10 w-10 animate-spin rounded-full border-4" />
+          <h2 className="text-foreground text-xl font-semibold">
             Loading...
           </h2>
         </div>

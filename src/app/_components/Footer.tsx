@@ -11,7 +11,7 @@ export const Footer = () => {
           </span>
         </div>
         <div className="mt-8 md:order-1 md:mt-0">
-          <p className="dark:text-deep-space-blue-800 text-center text-xs leading-5 text-gray-500 transition-colors">
+          <p className="text-center text-xs leading-5 text-gray-500 transition-colors dark:text-gray-400">
             &copy; 2026 GetGit, Inc. All rights reserved.
           </p>
         </div>

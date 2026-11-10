@@ -6,7 +6,7 @@ import Stripe from "stripe";
 import { fulfillStripeCheckoutSession } from "@/lib/stripe-fulfillment";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-01-28.clover",
+  apiVersion: "2026-02-25.clover",
 });
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -27,9 +27,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
-  const signature =
-    request.headers.get("stripe-signature") ??
-    (await headers()).get("stripe-signature");
+  const signature = request.headers.get("stripe-signature");
 
   if (!signature) {
     return NextResponse.json(

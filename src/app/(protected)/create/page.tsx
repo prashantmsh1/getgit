@@ -169,7 +169,7 @@ const CreatePage = () => {
       <div className="w-full max-w-md">
         <div>
           <h1 className="text-xl font-bold">Link your GitHub repository</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="text-muted-foreground mt-1 text-sm">
             Add the repository, choose the branch to index, and name the
             project.
           </p>
@@ -226,7 +226,7 @@ const CreatePage = () => {
               </Select>
             )}
             {branchesQuery.isError ? (
-              <p className="text-sm text-red-600">
+              <p className="text-destructive text-sm">
                 {branchesQuery.error.message}
               </p>
             ) : branchesQuery.isFetching ? (
@@ -261,10 +261,14 @@ const CreatePage = () => {
           </div>
 
           {!!checkCredits.data && (
-            <p className="text-sm text-gray-600">
+            <p className="text-muted-foreground text-sm">
               You have {checkCredits.data.userCredits} credits.
               <span
-                className={hasEnoughCredits ? "text-green-600" : "text-red-600"}
+                className={
+                  hasEnoughCredits
+                    ? "font-medium text-emerald-600 dark:text-emerald-400"
+                    : "font-medium text-destructive"
+                }
               >
                 {" "}
                 This project requires {checkCredits.data.fileCount} credits.

@@ -28,7 +28,7 @@ export const Hero = () => {
             seconds.
           </span>
         </h1>
-        <p className="dark:text-deep-space-blue-800 mx-auto mt-8 max-w-2xl text-lg leading-relaxed font-medium text-gray-600 transition-colors sm:text-xl">
+        <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed font-medium text-gray-600 transition-colors sm:text-xl dark:text-gray-300">
           Drop in a GitHub link and our AI instantly summarizes the
           architecture, explains complex files, and answers unlimited questions
           about the code.
@@ -36,7 +36,7 @@ export const Hero = () => {
         <div className="mt-10 flex flex-col items-center justify-center gap-4 gap-x-6 sm:flex-row">
           <Link
             href="/create"
-            className="group dark:text-deep-space-blue-50 flex w-full items-center justify-center gap-2 rounded-full bg-gray-900 px-8 py-4 text-base font-bold text-white shadow-xl shadow-gray-900/10 transition-all hover:scale-105 hover:bg-gray-800 sm:w-auto dark:bg-white dark:shadow-white/10 dark:hover:bg-gray-100"
+            className="group flex w-full items-center justify-center gap-2 rounded-full bg-gray-900 px-8 py-4 text-base font-bold text-white shadow-xl shadow-gray-900/10 transition-all hover:scale-105 hover:bg-gray-800 sm:w-auto dark:bg-white dark:text-gray-950 dark:shadow-white/10 dark:hover:bg-gray-100"
           >
             Analyze Repository
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
