@@ -1,4 +1,5 @@
 import { GitBranch } from "lucide-react";
+import Link from "next/link";
 
 export const Footer = () => {
   return (
@@ -10,9 +11,23 @@ export const Footer = () => {
             getgit
           </span>
         </div>
-        <div className="mt-8 md:order-1 md:mt-0">
+        <div className="mt-4 flex items-center justify-center gap-6 text-xs text-gray-500 md:mt-0 dark:text-gray-400">
+          <Link
+            href="/privacy"
+            className="transition-colors hover:text-gray-900 dark:hover:text-white"
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            href="/terms"
+            className="transition-colors hover:text-gray-900 dark:hover:text-white"
+          >
+            Terms of Service
+          </Link>
+        </div>
+        <div className="mt-4 md:mt-0">
           <p className="text-center text-xs leading-5 text-gray-500 transition-colors dark:text-gray-400">
-            &copy; 2026 GetGit, Inc. All rights reserved.
+            &copy; {new Date().getFullYear()} GetGit, Inc. All rights reserved.
           </p>
         </div>
       </div>
